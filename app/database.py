@@ -2,17 +2,23 @@ import os
 import json
 import uuid
 import shutil
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from tinydb import TinyDB, Query, where
+from tinydb import TinyDB
 from tinydb.storages import JSONStorage
 from tinydb.middlewares import CachingMiddleware
+
+logger = logging.getLogger("farmtree")
 
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "trees.json")
 PHOTOS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "photos")
 
 _db: TinyDB | None = None
+_raw_docs_cache: list | None = None
+_processed_cache: list[dict] | None = None
+_processed_count: int = 0
 
 
 def init_db() -> TinyDB:
@@ -57,19 +63,25 @@ def insert_tree(
         "visits": [visit],
     }
     doc_id = table.insert(doc)
+    invalidate_cache()
     return doc_id
 
 
 def add_visit(doc_id: int, status: str, notes: str, photos: list[str] | None = None) -> None:
     db = get_db()
     table = db.table("trees")
-    visit = {
-        "visit_dt": datetime.now().strftime("%Y/%m/%d %H:%M"),
-        "status": status,
-        "notes": notes,
-        "photos": photos or [],
-    }
-    table.update({"visits": where("visits").append(visit)}, doc_ids=[doc_id])
+    tree = table.get(doc_id=doc_id)
+    if tree:
+        visit = {
+            "visit_dt": datetime.now().strftime("%Y/%m/%d %H:%M"),
+            "status": status,
+            "notes": notes,
+            "photos": photos or [],
+        }
+        visits = tree.get("visits", [])
+        visits.append(visit)
+        table.update({"visits": visits}, doc_ids=[doc_id])
+        invalidate_cache()
 
 
 def update_tree(
@@ -95,16 +107,24 @@ def update_tree(
         updates["longitude"] = longitude
     if updates:
         table.update(updates, doc_ids=[doc_id])
+        invalidate_cache()
 
 
 def update_tree_status(doc_id: int, status: str) -> None:
     db = get_db()
     table = db.table("trees")
     tree = table.get(doc_id=doc_id)
-    if tree and tree.get("visits"):
-        visits = tree["visits"]
-        visits[-1]["status"] = status
+    if tree:
+        visit = {
+            "visit_dt": datetime.now().strftime("%Y/%m/%d %H:%M"),
+            "status": status,
+            "notes": "",
+            "photos": [],
+        }
+        visits = tree.get("visits", [])
+        visits.append(visit)
         table.update({"visits": visits}, doc_ids=[doc_id])
+        invalidate_cache()
 
 
 def delete_tree(doc_id: int) -> list[str]:
@@ -117,6 +137,7 @@ def delete_tree(doc_id: int) -> list[str]:
             for photo in visit.get("photos", []):
                 photo_paths.append(photo)
     table.remove(doc_ids=[doc_id])
+    invalidate_cache()
     return photo_paths
 
 
@@ -170,30 +191,78 @@ def search_trees(
 ) -> list[dict]:
     db = get_db()
     table = db.table("trees")
-    Tree = Query()
-    query = query.lower().strip()
-    conditions = []
-    if query:
-        conditions.append(
-            (Tree.kind.test(lambda x: query in x.lower() if x else False))
-            | (Tree.variety.test(lambda x: query in x.lower() if x else False))
-            | (Tree.tree_code.test(lambda x: query in x.lower() if x else False))
-            | (Tree.visits.any().test(lambda v: query in (v.get("notes", "") or "").lower() if v else False))
-            | (Tree.visits.any().test(lambda v: query in (v.get("status", "") or "").lower() if v else False))
-        )
-    if kind:
-        conditions.append(Tree.kind == kind)
-    if status:
-        conditions.append(Tree.visits.any().test(lambda v: v.get("status") == status if v else False))
-    if conditions:
-        query_obj = conditions[0]
-        for c in conditions[1:]:
-            query_obj &= c
-        trees = table.search(query_obj)
-    else:
-        trees = table.all()
+    q = query.lower().strip()
+    raw_trees = table.all()
     result = []
-    for tree in trees:
+    for tree in raw_trees:
+        tree_dict = dict(tree)
+        if kind and tree_dict.get("kind") != kind:
+            continue
+        last_status = ""
+        visits = tree_dict.get("visits", [])
+        if visits:
+            last_visit = visits[-1]
+            last_status = last_visit.get("status", "")
+            if status and last_status != status:
+                continue
+        elif status:
+            continue
+        if q:
+            if q in (tree_dict.get("kind") or "").lower():
+                pass
+            elif q in (tree_dict.get("variety") or "").lower():
+                pass
+            elif q in (tree_dict.get("tree_code") or "").lower():
+                pass
+            else:
+                found_in_visit = False
+                for v in visits:
+                    if q in (v.get("notes", "") or "").lower() or q in (v.get("status", "") or "").lower():
+                        found_in_visit = True
+                        break
+                if not found_in_visit:
+                    continue
+        doc_id = tree.doc_id
+        tree_dict["id"] = doc_id
+        if visits:
+            last_visit = visits[-1]
+            tree_dict["last_status"] = last_visit.get("status", "")
+            tree_dict["last_photo"] = last_visit.get("photos", [""])[0] if last_visit.get("photos") else ""
+            tree_dict["last_notes"] = last_visit.get("notes", "")
+            tree_dict["last_visit_dt"] = last_visit.get("visit_dt", "")
+        else:
+            tree_dict["last_status"] = ""
+            tree_dict["last_photo"] = ""
+            tree_dict["last_notes"] = ""
+            tree_dict["last_visit_dt"] = ""
+        result.append(tree_dict)
+    result.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
+    return result
+
+
+def invalidate_cache():
+    global _raw_docs_cache, _processed_cache, _processed_count
+    _raw_docs_cache = None
+    _processed_cache = None
+    _processed_count = 0
+
+
+def get_trees_slice(start: int = 0, limit: int = 1000) -> list[dict]:
+    global _raw_docs_cache, _processed_cache, _processed_count
+    db = get_db()
+    table = db.table("trees")
+    if _raw_docs_cache is None:
+        _raw_docs_cache = table.all()
+        _processed_cache = []
+        _processed_count = 0
+    all_docs = _raw_docs_cache
+    total = len(all_docs)
+    end = min(start + limit, total)
+
+    if end <= _processed_count:
+        return _processed_cache[start:end]
+
+    for tree in all_docs[_processed_count:end]:
         doc_id = tree.doc_id
         tree_dict = dict(tree)
         tree_dict["id"] = doc_id
@@ -209,9 +278,11 @@ def search_trees(
             tree_dict["last_photo"] = ""
             tree_dict["last_notes"] = ""
             tree_dict["last_visit_dt"] = ""
-        result.append(tree_dict)
-    result.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
-    return result
+        _processed_cache.append(tree_dict)
+    _processed_count = end
+
+    _processed_cache.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
+    return _processed_cache[start:end]
 
 
 def count_trees() -> int:
@@ -229,8 +300,8 @@ def copy_photo_to_storage(src_path: str) -> str:
     dst_path = os.path.join(PHOTOS_DIR, filename)
     try:
         shutil.copy2(src_path, dst_path)
-    except Exception:
-        pass
+    except Exception as ex:
+        logger.error("Failed to copy photo %s -> %s: %s", src_path, dst_path, ex)
     return dst_path
 
 
@@ -239,18 +310,11 @@ def get_gps_coordinates(callback):
 
     def get_location():
         try:
-            import geolocator
-            g = geolocator.Geolocator()
-            location = g.get_current_position()
-            if location:
-                callback(str(location.latitude), str(location.longitude))
-        except Exception:
-            try:
-                import geocoder
-                g = geocoder.ip("me")
-                if g.latlng:
-                    callback(str(g.latlng[0]), str(g.latlng[1]))
-            except Exception:
-                pass
+            import geocoder
+            g = geocoder.ip("me")
+            if g.latlng:
+                callback(str(g.latlng[0]), str(g.latlng[1]))
+        except Exception as ex:
+            logger.warning("GPS geocoding failed: %s", ex)
 
     threading.Thread(target=get_location, daemon=True).start()

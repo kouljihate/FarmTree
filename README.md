@@ -22,7 +22,7 @@ A cross-platform mobile application for managing farm trees, built with [Flet](h
 ## Tech Stack
 
 - **Framework**: [Flet](https://flet.dev/) - Flutter UI for Python
-- **Database**: SQLite with custom schema
+- **Database**: TinyDB (JSON document store)
 - **Language**: Python 3.10+
 - **Platform**: Android, iOS, Web, Windows, macOS, Linux
 
@@ -67,57 +67,33 @@ farm-tree-manager/
 ├── main.py              # Main application entry point
 ├── version.py           # Version information
 ├── requirements.txt     # Python dependencies
+├── PROMPT.md            # AI prompt / conventions
 ├── .gitignore           # Git ignore rules
 ├── app/
-│   ├── __init__.py
 │   ├── config.py        # Tree kinds, statuses configuration
-│   └── database.py      # SQLite database operations
+│   ├── database.py      # TinyDB CRUD operations
+│   └── logger.py        # Rotating file logger
 ├── assets/
 │   └── fonts/
-│       └── Comfortaa-Regular.woff2
+│       └── Comfortaa-Regular.ttf
 ├── data/
-│   ├── farm_trees.db    # SQLite database (created on first run)
+│   ├── trees.json       # TinyDB document store
 │   └── photos/          # Captured photos storage
-└── build/               # Build output directory
+├── build/
+│   ├── build_apk.bat    # APK build script
+│   └── apk/             # Built APK output
+└── Tests/               # Test scripts
 ```
 
-## Database Schema
+## Database
 
-```sql
--- Trees table
-CREATE TABLE trees (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tree_code TEXT UNIQUE NOT NULL,
-    sector TEXT NOT NULL,
-    zone TEXT NOT NULL,
-    row_num TEXT NOT NULL,
-    tree_number TEXT NOT NULL,
-    kind TEXT NOT NULL,
-    variety TEXT,
-    latitude REAL,
-    longitude REAL,
-    status TEXT NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Visits table
-CREATE TABLE visits (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tree_id INTEGER NOT NULL,
-    visit_dt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status TEXT NOT NULL,
-    notes TEXT,
-    photos TEXT,  -- JSON array of photo paths
-    FOREIGN KEY (tree_id) REFERENCES trees (id) ON DELETE CASCADE
-);
-```
+Uses **TinyDB** (JSON document store) at `data/trees.json`. Each tree document contains:
+- `tree_code`, `kind`, `variety`, `latitude`, `longitude`
+- `visits[]` — array of visit objects with `visit_dt`, `status`, `notes`, `photos[]`
 
 ## Key Features Implementation
 
 ### Camera Integration
-- Uses Flet's `FilePicker` with `FilePickerFileType.IMAGE`
 - Camera button launches device camera directly
 - Gallery button opens photo library
 - Photos are copied to app storage and referenced by path
@@ -197,9 +173,11 @@ MIT License - feel free to use and modify for your farm management needs.
 
 ## Version History
 
-- **v1.2.0** - Added camera integration, GPS, Card-based UI layout
-- **v1.1.0** - Added search, pagination, visit tracking
-- **v1.0.0** - Initial release with basic CRUD operations
+- **v1.7.0** - Code optimisations, refactored save methods, Android 15 (API 35) target, updated build tooling
+- **v1.6.0** - Build 15, TinyDB migration, Pomme -> Prunes rename
+- **v1.5.0** - Enhanced tree varieties, Bug fixes
+- **v1.2.0** - Camera integration, GPS, Card-based UI layout
+- **v1.0.0** - initial release
 
 ---
 
