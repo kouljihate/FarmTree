@@ -77,6 +77,7 @@ class TreesApp:
         self.setup_edit_form()
         self.setup_detail_view()
         self.setup_settings_view()
+        self.setup_stats_view()
 
         self.main_container = Stack([
             self.list_container,
@@ -84,6 +85,7 @@ class TreesApp:
             self.edit_container,
             self.detail_container,
             self.settings_container,
+            self.stats_container,
         ], expand=True)
         self.page.add(self.main_container)
         self.show_list_view()
@@ -151,34 +153,45 @@ class TreesApp:
         self.search_button = IconButton(
             icon=Icons.SEARCH,
             icon_color=Colors.WHITE,
-            icon_size=28,
+            icon_size=32,
             on_click=self.trigger_search,
             tooltip="Search",
+        )
+
+        self.tree_count_badge = Container(
+            visible=False,
+            padding=Padding(6, 2, 6, 2),
+            border_radius=BorderRadius(10, 10, 10, 10),
+            bgcolor=Colors.GREEN_700,
         )
 
         self.search_input_container = Container(
             content=Row([
                 self.search_field,
+                self.tree_count_badge,
                 self.search_clear_btn,
             ], spacing=8, alignment=MainAxisAlignment.END, vertical_alignment=CrossAxisAlignment.CENTER),
             width=280,
             height=40,
             bgcolor=Colors.WHITE,
-            margin=Margin(0, 8, 8, 0),
-            border_radius=BorderRadius(8, 8, 8, 8),
+            margin=Margin(0, 0, 4, 0),
+            border_radius=BorderRadius(20, 20, 20, 20),
             padding=Padding(8, 0, 8, 0),
         )
 
-        self.back_btn = IconButton(icon=Icons.ARROW_BACK, icon_color=Colors.WHITE, tooltip="Back")
+        self.back_btn = IconButton(icon=Icons.ARROW_BACK, icon_color=Colors.WHITE, icon_size=32, tooltip="Back")
+        self.stats_btn = IconButton(icon=Icons.ANALYTICS_OUTLINED, icon_color=Colors.WHITE, icon_size=32, on_click=lambda _: self.show_stats_view(), tooltip="Statistics")
         self.app_bar = AppBar(
             leading=None,
             title=None,
             bgcolor=Colors.GREEN_700,
             actions=[
-                self.search_button,
                 self.search_input_container,
-                IconButton(icon=Icons.REFRESH, icon_color=Colors.WHITE, icon_size=28, on_click=lambda _: self.load_trees(), tooltip="Refresh"),
+                self.search_button,
+                self.stats_btn,
+                IconButton(icon=Icons.REFRESH, icon_color=Colors.WHITE, icon_size=32, on_click=lambda _: self.load_trees(), tooltip="Refresh"),
             ],
+            toolbar_height=48,
         )
         self.page.appbar = self.app_bar
 
@@ -698,9 +711,7 @@ class TreesApp:
         self.edit_container.visible = False
         self.detail_container.visible = False
         self.settings_container.visible = False
-        self.nav_bar.selected_index = 0
-        self.nav_bar.update()
-        self.page.bottom_appbar = self.pagination_bar
+        self.stats_container.visible = False
         self.main_container.update()
         self.page.update()
         invalidate_cache()
@@ -718,6 +729,7 @@ class TreesApp:
         self.edit_container.visible = False
         self.detail_container.visible = False
         self.settings_container.visible = False
+        self.stats_container.visible = False
         self.nav_bar.selected_index = 1
         self.nav_bar.update()
         self.page.bottom_appbar = None
@@ -731,6 +743,7 @@ class TreesApp:
         self.edit_container.visible = False
         self.detail_container.visible = False
         self.settings_container.visible = False
+        self.stats_container.visible = False
         self.nav_bar.selected_index = 0
         self.nav_bar.update()
         self.page.bottom_appbar = None
@@ -784,12 +797,128 @@ class TreesApp:
             visible=False,
         )
 
+    def setup_stats_view(self):
+        self.stats_status_list = Column(spacing=6)
+        self.stats_kind_list = Column(spacing=6)
+        self.stats_total_label = Text("Total Trees: 0", size=18, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700)
+
+        self.stats_container = Container(
+            content=ListView([
+                Container(
+                    content=Column([
+                        Row([
+                            Text("Statistics", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700, expand=True),
+                        ]),
+                        Divider(height=2, color=Colors.GREEN_200),
+                        Container(height=10),
+                        self.stats_total_label,
+                        Container(height=10),
+                        Text("Tree Status Distribution", size=16, weight=FontWeight.W_500, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Divider(height=2),
+                        self.stats_status_list,
+                        Container(height=10),
+                        Text("Tree Kind Distribution", size=16, weight=FontWeight.W_500, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Divider(height=2),
+                        self.stats_kind_list,
+                    ], spacing=12, horizontal_alignment=CrossAxisAlignment.START),
+                    padding=Padding(20, 20, 20, 20),
+                ),
+            ], expand=True, padding=Padding(0, 0, 0, 20)),
+            visible=False,
+        )
+
+    def show_stats_view(self):
+        self.list_container.visible = False
+        self.add_container.visible = False
+        self.edit_container.visible = False
+        self.detail_container.visible = False
+        self.settings_container.visible = False
+        self.stats_container.visible = True
+        self.nav_bar.selected_index = 0
+        self.nav_bar.update()
+        self.page.bottom_appbar = None
+        self.back_btn.on_click = lambda _: self.show_list_view()
+        self.app_bar.leading = self.back_btn
+        self.app_bar.update()
+        self.main_container.update()
+        self.page.update()
+        self.load_stats()
+
+    def load_stats(self):
+        try:
+            all_trees = get_all_trees()
+        except Exception as ex:
+            self.logger.error("Failed to load stats: %s", ex)
+            self.show_snack("Error loading statistics", Colors.RED)
+            return
+
+        total = len(all_trees)
+        self.stats_total_label.value = f"Total Trees: {total}"
+
+        status_counts = {}
+        kind_counts = {}
+        for t in all_trees:
+            status = t.get("last_status", "No visits")
+            status_counts[status] = status_counts.get(status, 0) + 1
+            kind = t.get("kind", "Unknown")
+            kind_counts[kind] = kind_counts.get(kind, 0) + 1
+
+        kind_colors = [
+            Colors.GREEN_600, Colors.BLUE_600, Colors.ORANGE_600, Colors.RED_600,
+            Colors.PURPLE_600, Colors.TEAL_600, Colors.AMBER_600, Colors.INDIGO_600,
+        ]
+
+        self.stats_status_list.controls.clear()
+        max_status = max(status_counts.values()) if status_counts else 1
+        for status, count in sorted(status_counts.items(), key=lambda x: -x[1]):
+            color = STATUS_LOOKUP.get(status, Colors.GREY)
+            pct = count / max_status
+            self.stats_status_list.controls.append(
+                Column([
+                    Row([
+                        Text(status, size=13, weight=FontWeight.W_500, font_family="Comfortaa", expand=True),
+                        Text(str(count), size=13, font_family="Comfortaa", color=Colors.GREY_700),
+                    ], spacing=4),
+                    Container(
+                        height=20,
+                        bgcolor=color,
+                        border_radius=BorderRadius(10, 10, 10, 10),
+                        width=max(20, int(200 * pct)),
+                    ),
+                ], spacing=2, tight=True)
+            )
+
+        self.stats_kind_list.controls.clear()
+        max_kind = max(kind_counts.values()) if kind_counts else 1
+        for i, (kind, count) in enumerate(sorted(kind_counts.items(), key=lambda x: -x[1])):
+            color = kind_colors[i % len(kind_colors)]
+            pct = count / max_kind
+            self.stats_kind_list.controls.append(
+                Column([
+                    Row([
+                        Text(kind, size=13, weight=FontWeight.W_500, font_family="Comfortaa", expand=True),
+                        Text(str(count), size=13, font_family="Comfortaa", color=Colors.GREY_700),
+                    ], spacing=4),
+                    Container(
+                        height=20,
+                        bgcolor=color,
+                        border_radius=BorderRadius(10, 10, 10, 10),
+                        width=max(20, int(200 * pct)),
+                    ),
+                ], spacing=2, tight=True)
+            )
+
+        self.stats_status_list.update()
+        self.stats_kind_list.update()
+        self.stats_total_label.update()
+
     def show_settings_view(self):
         self.list_container.visible = False
         self.add_container.visible = False
         self.edit_container.visible = False
         self.detail_container.visible = False
         self.settings_container.visible = True
+        self.stats_container.visible = False
         self.nav_bar.selected_index = 2
         self.nav_bar.update()
         self.page.bottom_appbar = None
@@ -924,6 +1053,10 @@ class TreesApp:
             self.hide_loading_overlay()
             self._is_loading = False
             return
+
+        self.tree_count_badge.content = Text(str(total), size=11, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.WHITE)
+        self.tree_count_badge.visible = total > 0
+        self.tree_count_badge.update()
 
         if not total:
             self.tree_list.visible = False
@@ -1181,6 +1314,7 @@ class TreesApp:
         self.edit_container.visible = False
         self.detail_container.visible = True
         self.settings_container.visible = False
+        self.stats_container.visible = False
         self.nav_bar.selected_index = 0
         self.nav_bar.update()
         self.page.bottom_appbar = None
@@ -1264,6 +1398,7 @@ class TreesApp:
         self.populate_edit_form(self.current_tree_data)
         self.detail_container.visible = False
         self.edit_container.visible = True
+        self.stats_container.visible = False
         self.page.bottom_appbar = None
         self.page.update()
         self.main_container.update()
