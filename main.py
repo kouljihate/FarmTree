@@ -151,6 +151,7 @@ class TreesApp:
         self.search_button = IconButton(
             icon=Icons.SEARCH,
             icon_color=Colors.WHITE,
+            icon_size=28,
             on_click=self.trigger_search,
             tooltip="Search",
         )
@@ -168,15 +169,15 @@ class TreesApp:
             padding=Padding(8, 0, 8, 0),
         )
 
-        self.app_bar_btn = IconButton(icon=Icons.MENU, icon_color=Colors.WHITE, on_click=lambda _: self.show_list_view(), tooltip="Menu")
+        self.back_btn = IconButton(icon=Icons.ARROW_BACK, icon_color=Colors.WHITE, tooltip="Back")
         self.app_bar = AppBar(
-            leading=self.app_bar_btn,
-            title=Text("Scan Tree", font_family="Comfortaa", weight=FontWeight.BOLD, color=Colors.WHITE),
+            leading=None,
+            title=None,
             bgcolor=Colors.GREEN_700,
             actions=[
                 self.search_button,
                 self.search_input_container,
-                IconButton(icon=Icons.REFRESH, icon_color=Colors.WHITE, on_click=lambda _: self.load_trees(), tooltip="Refresh"),
+                IconButton(icon=Icons.REFRESH, icon_color=Colors.WHITE, icon_size=28, on_click=lambda _: self.load_trees(), tooltip="Refresh"),
             ],
         )
         self.page.appbar = self.app_bar
@@ -447,13 +448,11 @@ class TreesApp:
             ),
         )
 
-        self.add_back_btn = IconButton(icon=Icons.ARROW_BACK, icon_color=Colors.GREEN_700, tooltip="Back to list", on_click=lambda _: self.show_list_view())
-
         self.add_container = Container(
             content=ListView([
                 Container(
                     content=Column([
-                        Row([self.add_back_btn, Text("Add New Tree", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700)], spacing=8, vertical_alignment=CrossAxisAlignment.CENTER),
+                        Row([Text("Add New Tree", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700)], spacing=8, vertical_alignment=CrossAxisAlignment.CENTER),
                         Divider(height=12),
                         self.photos_card,
                         Divider(height=8),
@@ -603,10 +602,10 @@ class TreesApp:
         self.detail_kind = Text("", size=16, font_family="Comfortaa")
         self.detail_variety = Text("", size=16, font_family="Comfortaa")
         self.detail_location = Text("", size=16, font_family="Comfortaa")
-        self.detail_status_chip = Chip(
-            label=Text("", font_family="Comfortaa"),
+        self.detail_status_badge = Container(
             bgcolor=Colors.GREEN_100,
-            color=Colors.GREEN_700,
+            padding=Padding(12, 4, 12, 4),
+            border_radius=BorderRadius(20, 20, 20, 20),
         )
         self.detail_notes = Text("", size=14, font_family="Comfortaa", color=Colors.GREY_700)
         self.detail_photos_grid = GridView(expand=False, max_extent=120, child_aspect_ratio=1, spacing=8, run_spacing=8)
@@ -646,7 +645,6 @@ class TreesApp:
                 Container(
                     content=Column([
                         Row([
-                            IconButton(icon=Icons.ARROW_BACK, on_click=lambda _: self.show_list_view()),
                             Text("Tree Details", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700, expand=True),
                         ]),
                         Divider(height=10),
@@ -657,7 +655,7 @@ class TreesApp:
                                     self.detail_kind,
                                     self.detail_variety,
                                     self.detail_location,
-                                    Row([self.detail_status_chip], alignment=MainAxisAlignment.START),
+                                    Row([self.detail_status_badge], alignment=MainAxisAlignment.START),
                                     Text("Notes:", weight=FontWeight.W_500, font_family="Comfortaa"),
                                     self.detail_notes,
                                 ], spacing=8, horizontal_alignment=CrossAxisAlignment.START),
@@ -693,6 +691,8 @@ class TreesApp:
 
     def show_list_view(self):
         self.logger.debug("Navigating to list view")
+        self.app_bar.leading = None
+        self.app_bar.update()
         self.list_container.visible = True
         self.add_container.visible = False
         self.edit_container.visible = False
@@ -701,10 +701,6 @@ class TreesApp:
         self.nav_bar.selected_index = 0
         self.nav_bar.update()
         self.page.bottom_appbar = self.pagination_bar
-        self.app_bar_btn.icon = Icons.MENU
-        self.app_bar_btn.tooltip = "Menu"
-        self.app_bar_btn.on_click = lambda _: self.show_list_view()
-        self.app_bar_btn.update()
         self.main_container.update()
         self.page.update()
         invalidate_cache()
@@ -713,6 +709,9 @@ class TreesApp:
 
     def show_add_form(self):
         self.logger.debug("Navigating to add form")
+        self.back_btn.on_click = lambda _: self.show_list_view()
+        self.app_bar.leading = self.back_btn
+        self.app_bar.update()
         self.reset_add_form()
         self.list_container.visible = False
         self.add_container.visible = True
@@ -990,11 +989,12 @@ class TreesApp:
         lat = tree.get("latitude", "")
         lon = tree.get("longitude", "")
 
-        status_color = STATUS_LOOKUP.get(last_status, Colors.GREY)
-        status_chip = Chip(
-            label=Text(last_status, size=11, weight=FontWeight.W_500, font_family="Comfortaa", color=Colors.WHITE),
+        status_color = STATUS_LOOKUP.get(last_status, "#455A64")
+        status_badge = Container(
+            content=Text(last_status, size=13, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.WHITE),
             bgcolor=status_color,
-            padding=Padding(8, 0, 8, 0),
+            padding=Padding(12, 4, 12, 4),
+            border_radius=BorderRadius(20, 20, 20, 20),
         )
 
         leading = Container(
@@ -1013,7 +1013,7 @@ class TreesApp:
             Row([
                 Text(f"Lat: {lat}, Lon: {lon}" if lat or lon else "No location", size=12, color=Colors.GREY_500, font_family="Comfortaa"),
             ], spacing=0),
-            Row([status_chip], spacing=8),
+            Row([status_badge], spacing=8),
         ], spacing=4, tight=True)
 
         def on_tap(e):
@@ -1172,6 +1172,9 @@ class TreesApp:
     def show_tree_detail(self, tree: dict):
         self.current_tree_id = tree["id"]
         self.current_tree_data = tree
+        self.back_btn.on_click = lambda _: self.show_list_view()
+        self.app_bar.leading = self.back_btn
+        self.app_bar.update()
         self.populate_detail_view(tree)
         self.list_container.visible = False
         self.add_container.visible = False
@@ -1192,10 +1195,9 @@ class TreesApp:
         lon = tree.get('longitude', '')
         self.detail_location.value = f"Location: {lat}, {lon}" if lat or lon else "Location: Not set"
         last_status = tree.get("last_status", "No visits")
-        status_color = STATUS_LOOKUP.get(last_status, Colors.GREY)
-        self.detail_status_chip.label.value = last_status
-        self.detail_status_chip.bgcolor = status_color + "20"
-        self.detail_status_chip.color = status_color
+        status_color = STATUS_LOOKUP.get(last_status, "#455A64")
+        self.detail_status_badge.bgcolor = status_color
+        self.detail_status_badge.content = Text(last_status, size=13, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.WHITE)
         self.detail_notes.value = tree.get("last_notes", "No notes")
 
         self.detail_photos_grid.controls.clear()
@@ -1249,21 +1251,20 @@ class TreesApp:
         self.detail_kind.update()
         self.detail_variety.update()
         self.detail_location.update()
-        self.detail_status_chip.update()
+        self.detail_status_badge.update()
         self.detail_notes.update()
         self.detail_photos_grid.update()
         self.detail_visits_list.update()
 
     def edit_current_tree(self):
         self.current_tree_id = self.current_tree_data["id"]
+        self.back_btn.on_click = lambda _: self.show_tree_detail(self.current_tree_data) if self.current_tree_data else self.show_list_view()
+        self.app_bar.leading = self.back_btn
+        self.app_bar.update()
         self.populate_edit_form(self.current_tree_data)
         self.detail_container.visible = False
         self.edit_container.visible = True
         self.page.bottom_appbar = None
-        self.app_bar_btn.icon = Icons.ARROW_BACK
-        self.app_bar_btn.tooltip = "Back"
-        self.app_bar_btn.on_click = lambda _: self.show_tree_detail(self.current_tree_data)
-        self.app_bar_btn.update()
         self.page.update()
         self.main_container.update()
 

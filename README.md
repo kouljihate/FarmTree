@@ -173,6 +173,7 @@ MIT License - feel free to use and modify for your farm management needs.
 
 ## Version History
 
+- **v1.8.0** - TopBar redesign, status badge styling improvements, AppBar navigation enhancements
 - **v1.7.0** - Code optimisations, refactored save methods, Android 15 (API 35) target, updated build tooling
 - **v1.6.0** - Build 15, TinyDB migration, Pomme -> Prunes rename
 - **v1.5.0** - Enhanced tree varieties, Bug fixes
