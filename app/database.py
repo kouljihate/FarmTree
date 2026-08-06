@@ -1,10 +1,8 @@
 import os
-import json
 import uuid
 import shutil
 import logging
 from datetime import datetime
-from typing import Optional, List, Dict, Any
 from tinydb import TinyDB
 from tinydb.storages import JSONStorage
 from tinydb.middlewares import CachingMiddleware
@@ -16,9 +14,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "trees.json")
 PHOTOS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "photos")
 
 _db: TinyDB | None = None
-_raw_docs_cache: list | None = None
-_processed_cache: list[dict] | None = None
-_processed_count: int = 0
+_trees_cache: list[dict] | None = None
 
 
 def init_db() -> TinyDB:
@@ -154,34 +150,9 @@ def get_tree(doc_id: int) -> dict | None:
 def get_all_trees() -> list[dict]:
     db = get_db()
     table = db.table("trees")
-    trees = table.all()
-    result = []
-    for tree in trees:
-        doc_id = tree.doc_id
-        tree_dict = dict(tree)
-        tree_dict["id"] = doc_id
-        visits = tree_dict.get("visits", [])
-        if visits:
-            last_visit = visits[-1]
-            tree_dict["last_status"] = last_visit.get("status", "")
-            tree_dict["last_photo"] = last_visit.get("photos", [""])[0] if last_visit.get("photos") else ""
-            tree_dict["last_notes"] = last_visit.get("notes", "")
-            tree_dict["last_visit_dt"] = last_visit.get("visit_dt", "")
-        else:
-            tree_dict["last_status"] = ""
-            tree_dict["last_photo"] = ""
-            tree_dict["last_notes"] = ""
-            tree_dict["last_visit_dt"] = ""
-        result.append(tree_dict)
+    result = [_enrich_tree(t) for t in table.all()]
     result.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
     return result
-
-
-def get_trees_page(page: int, per_page: int) -> list[dict]:
-    all_trees = get_all_trees()
-    start = page * per_page
-    end = start + per_page
-    return all_trees[start:end]
 
 
 def search_trees(
@@ -191,110 +162,91 @@ def search_trees(
 ) -> list[dict]:
     db = get_db()
     table = db.table("trees")
-    q = query.lower().strip()
-    raw_trees = table.all()
+    terms = []
+    for term in query.strip().split("|"):
+        t = term.strip()
+        if t:
+            terms.append(t.lower())
     result = []
-    for tree in raw_trees:
-        tree_dict = dict(tree)
-        if kind and tree_dict.get("kind") != kind:
+    for tree in table.all():
+        if kind and tree.get("kind") != kind:
             continue
-        last_status = ""
-        visits = tree_dict.get("visits", [])
-        if visits:
-            last_visit = visits[-1]
-            last_status = last_visit.get("status", "")
-            if status and last_status != status:
+        visits = tree.get("visits", [])
+        last_status = visits[-1].get("status", "") if visits else ""
+        if status and last_status != status:
+            continue
+        if terms:
+            all_found = True
+            for term in terms:
+                found = (
+                    term in (tree.get("kind") or "").lower()
+                    or term in (tree.get("variety") or "").lower()
+                    or term in (tree.get("tree_code") or "").lower()
+                    or any(
+                        term in (v.get("notes", "") or "").lower() or term in (v.get("status", "") or "").lower()
+                        for v in visits
+                    )
+                )
+                if not found:
+                    all_found = False
+                    break
+            if not all_found:
                 continue
-        elif status:
-            continue
-        if q:
-            if q in (tree_dict.get("kind") or "").lower():
-                pass
-            elif q in (tree_dict.get("variety") or "").lower():
-                pass
-            elif q in (tree_dict.get("tree_code") or "").lower():
-                pass
-            else:
-                found_in_visit = False
-                for v in visits:
-                    if q in (v.get("notes", "") or "").lower() or q in (v.get("status", "") or "").lower():
-                        found_in_visit = True
-                        break
-                if not found_in_visit:
-                    continue
-        doc_id = tree.doc_id
-        tree_dict["id"] = doc_id
-        if visits:
-            last_visit = visits[-1]
-            tree_dict["last_status"] = last_visit.get("status", "")
-            tree_dict["last_photo"] = last_visit.get("photos", [""])[0] if last_visit.get("photos") else ""
-            tree_dict["last_notes"] = last_visit.get("notes", "")
-            tree_dict["last_visit_dt"] = last_visit.get("visit_dt", "")
-        else:
-            tree_dict["last_status"] = ""
-            tree_dict["last_photo"] = ""
-            tree_dict["last_notes"] = ""
-            tree_dict["last_visit_dt"] = ""
-        result.append(tree_dict)
+        result.append(_enrich_tree(tree))
     result.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
     return result
 
 
 def invalidate_cache():
-    global _raw_docs_cache, _processed_cache, _processed_count
-    _raw_docs_cache = None
-    _processed_cache = None
-    _processed_count = 0
+    global _trees_cache
+    _trees_cache = None
+
+
+def _enrich_tree(tree) -> dict:
+    doc_id = tree.doc_id
+    d = dict(tree)
+    d["id"] = doc_id
+    visits = d.get("visits", [])
+    if visits:
+        last = visits[-1]
+        d.update(
+            last_status=last.get("status", ""),
+            last_photo=(last.get("photos") or [""])[0],
+            last_notes=last.get("notes", ""),
+            last_visit_dt=last.get("visit_dt", ""),
+        )
+    else:
+        d.update(last_status="", last_photo="", last_notes="", last_visit_dt="")
+    return d
 
 
 def get_trees_slice(start: int = 0, limit: int = 1000) -> list[dict]:
-    global _raw_docs_cache, _processed_cache, _processed_count
+    global _trees_cache
     db = get_db()
     table = db.table("trees")
-    if _raw_docs_cache is None:
-        _raw_docs_cache = table.all()
-        _processed_cache = []
-        _processed_count = 0
-    all_docs = _raw_docs_cache
-    total = len(all_docs)
+    if _trees_cache is None:
+        all_docs = table.all()
+        _trees_cache = [_enrich_tree(t) for t in all_docs]
+        _trees_cache.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
+    all_trees = _trees_cache
+    total = len(all_trees)
     end = min(start + limit, total)
-
-    if end <= _processed_count:
-        return _processed_cache[start:end]
-
-    for tree in all_docs[_processed_count:end]:
-        doc_id = tree.doc_id
-        tree_dict = dict(tree)
-        tree_dict["id"] = doc_id
-        visits = tree_dict.get("visits", [])
-        if visits:
-            last_visit = visits[-1]
-            tree_dict["last_status"] = last_visit.get("status", "")
-            tree_dict["last_photo"] = last_visit.get("photos", [""])[0] if last_visit.get("photos") else ""
-            tree_dict["last_notes"] = last_visit.get("notes", "")
-            tree_dict["last_visit_dt"] = last_visit.get("visit_dt", "")
-        else:
-            tree_dict["last_status"] = ""
-            tree_dict["last_photo"] = ""
-            tree_dict["last_notes"] = ""
-            tree_dict["last_visit_dt"] = ""
-        _processed_cache.append(tree_dict)
-    _processed_count = end
-
-    _processed_cache.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
-    return _processed_cache[start:end]
+    return all_trees[start:end]
 
 
 def count_trees() -> int:
+    global _trees_cache
     db = get_db()
     table = db.table("trees")
+    if _trees_cache is not None:
+        return len(_trees_cache)
     return len(table)
 
 
 def copy_photo_to_storage(src_path: str) -> str:
     os.makedirs(PHOTOS_DIR, exist_ok=True)
     ext = os.path.splitext(src_path)[1].lower()
-    if ext not in (".jpg", ".jpeg", ".png"):
+    if ext not in (".jpg", ".jpeg", ".png", ".webp"):
         ext = ".jpg"
     filename = f"{uuid.uuid4().hex}_{datetime.now().strftime('%y%m%d%H%M')}{ext}"
     dst_path = os.path.join(PHOTOS_DIR, filename)
@@ -314,6 +266,9 @@ def get_gps_coordinates(callback):
             g = geocoder.ip("me")
             if g.latlng:
                 callback(str(g.latlng[0]), str(g.latlng[1]))
+
+        except ImportError:
+            logger.debug("geocoder not installed, GPS unavailable")
         except Exception as ex:
             logger.warning("GPS geocoding failed: %s", ex)
 

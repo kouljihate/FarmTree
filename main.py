@@ -1,6 +1,8 @@
 import os
+import re
 import asyncio
 import shutil
+import sys
 from datetime import datetime
 import flet as ft
 import logging
@@ -12,22 +14,54 @@ from flet import (
     Image, GridView, KeyboardType, InputBorder, TextStyle,
     Border, Divider, Padding, Margin, alignment,
     FontWeight, CrossAxisAlignment, MainAxisAlignment, ScrollMode,
-    BorderRadius, Chip, ButtonStyle,
+    BorderRadius, ButtonStyle,
     PopupMenuItem, BottomSheet, ProgressRing,
-    FilledButton, BoxFit, BottomAppBar,
+    FilledButton, BoxFit, BottomAppBar, SafeArea,
 )
+from flet_camera import Camera, CameraLensDirection, ResolutionPreset
+from flet_charts import BarChart, BarChartGroup, BarChartRod, BarChartTooltip, ChartAxis, ChartAxisLabel
+from flet_geolocator import Geolocator, GeolocatorConfiguration, GeolocatorPositionAccuracy
 from app.config import TREE_KINDS, TREE_VARIETIES, STATUS_LOOKUP
 import version
 from app.database import (
-    init_db, get_all_trees, get_trees_page, get_trees_slice, search_trees, count_trees,
+    init_db, get_all_trees, get_trees_slice, search_trees, count_trees,
     insert_tree, add_visit, update_tree, update_tree_status,
-    delete_tree, get_tree, get_gps_coordinates,
+    delete_tree, get_tree, copy_photo_to_storage,
     invalidate_cache, PHOTOS_DIR,
 )
 from app.logger import get_logger, read_logs
 
 STATUS_DROPDOWN_ITEMS = [DropdownOption(text=label, key=label) for label in STATUS_LOOKUP]
 KIND_DROPDOWN_ITEMS = [DropdownOption(text=k, key=k) for k in TREE_KINDS]
+
+
+def _build_visit_card(visit: dict, photo_size: int = 50) -> Card:
+    status = visit.get("status", "")
+    color = STATUS_LOOKUP.get(status, Colors.GREY)
+    photos = visit.get("photos", [])
+    photo_chips = [
+        Container(
+            content=Image(src=p, fit=BoxFit.COVER, width=photo_size, height=photo_size, border_radius=BorderRadius(6, 6, 6, 6)),
+            width=photo_size, height=photo_size, border_radius=BorderRadius(6, 6, 6, 6), clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        ) for p in photos
+    ]
+    return Card(
+        content=Container(
+            content=Column([
+                Row([
+                    Text(visit.get("visit_dt", ""), weight=FontWeight.BOLD, size=13, font_family="Comfortaa"),
+                    Container(
+                        content=Text(status, size=11, weight=FontWeight.W_500, color=Colors.WHITE, font_family="Comfortaa"),
+                        bgcolor=color, padding=Padding(6, 2, 6, 2), border_radius=BorderRadius(10, 10, 10, 10),
+                    ),
+                ], alignment=MainAxisAlignment.SPACE_BETWEEN),
+                Text(visit.get("notes", "No notes"), size=13, color=Colors.GREY_700, font_family="Comfortaa"),
+                Row(photo_chips, spacing=4) if photo_chips else Container(),
+            ], spacing=4, tight=True),
+            padding=Padding(12, 10, 12, 10),
+        ),
+        elevation=1,
+    )
 
 
 class TreesApp:
@@ -52,11 +86,11 @@ class TreesApp:
         self.filter_status = None
         self.current_tree_id = None
         self.current_tree_data = None
-        self.photos = []
         self.new_photos = []
         self.captured_photo_path = None
+        self.captured_gps_lat = ""
+        self.captured_gps_lon = ""
 
-        self._is_loading = False
         self.logger = get_logger()
 
         try:
@@ -79,6 +113,33 @@ class TreesApp:
         self.setup_settings_view()
         self.setup_stats_view()
 
+        self.geolocator = None
+        self.camera = None
+        self.camera_available = False
+        self.geolocator_available = False
+
+        _is_desktop = self.page.platform in (ft.PagePlatform.WINDOWS, ft.PagePlatform.MACOS, ft.PagePlatform.LINUX)
+        if not _is_desktop:
+            try:
+                self.geolocator = Geolocator(
+                    configuration=GeolocatorConfiguration(
+                        accuracy=GeolocatorPositionAccuracy.HIGH,
+                    ),
+                )
+                self.page.overlay.append(self.geolocator)
+                self.geolocator_available = True
+            except Exception as ex:
+                self.logger.warning("Geolocator not available: %s", ex)
+
+            try:
+                self.camera = Camera(visible=False)
+                self.page.overlay.append(self.camera)
+                self.camera_available = True
+            except Exception as ex:
+                self.logger.warning("Camera init failed: %s", ex)
+        else:
+            self.logger.info("Camera and Geolocator skipped on desktop platform: %s", self.page.platform)
+
         self.main_container = Stack([
             self.list_container,
             self.add_container,
@@ -87,7 +148,14 @@ class TreesApp:
             self.settings_container,
             self.stats_container,
         ], expand=True)
-        self.page.add(self.main_container)
+        safe_main = SafeArea(
+            content=self.main_container,
+            expand=True,
+            avoid_intrusions_top=True,
+            avoid_intrusions_bottom=True,
+            maintain_bottom_view_padding=True,
+        )
+        self.page.add(safe_main)
         self.show_list_view()
 
     def update_tree_code(self):
@@ -98,22 +166,14 @@ class TreesApp:
             t = self.add_tree_number.value.strip() if self.add_tree_number.value else ""
             code = f"S{s}Z{z}R{r}T{t}" if (s or z or r or t) else ""
             self.add_tree_code.value = code
-            if hasattr(self, 'location_header'):
-                lat = self.add_latitude.value.strip() if self.add_latitude.value else ""
-                lon = self.add_longitude.value.strip() if self.add_longitude.value else ""
-                latlon = f" - {lat},{lon}" if lat and lon else ""
-                if code:
-                    self.location_header.value = f"Location {code}{latlon}"
-                elif latlon:
-                    self.location_header.value = f"Location{latlon}"
-                else:
-                    self.location_header.value = "Location"
-                self.location_header.update()
+            if hasattr(self, 'location_tree_code'):
+                self.location_tree_code.value = code
+                self.location_tree_code.update()
         except Exception as ex:
             self.logger.warning("update_tree_code: %s", ex)
 
     def on_kind_change(self, e):
-        kind = e.control.value
+        kind = e.control.value or e.data
         if kind and kind in TREE_VARIETIES:
             self.add_variety.options = [DropdownOption(text=v, key=v) for v in TREE_VARIETIES[kind]]
         else:
@@ -122,7 +182,7 @@ class TreesApp:
         self.add_variety.update()
 
     def on_edit_kind_change(self, e):
-        kind = e.control.value
+        kind = e.control.value or e.data
         if kind and kind in TREE_VARIETIES:
             self.edit_variety.options = [DropdownOption(text=v, key=v) for v in TREE_VARIETIES[kind]]
         else:
@@ -132,7 +192,7 @@ class TreesApp:
 
     def setup_app_bar(self):
         self.search_field = TextField(
-            hint_text="Search trees...",
+            hint_text="Search trees... (use | for AND)",
             hint_style=TextStyle(color=Colors.GREY_500, font_family="Comfortaa"),
             border=InputBorder.NONE,
             content_padding=Padding(10, 0, 10, 0),
@@ -211,7 +271,7 @@ class TreesApp:
         self.page.navigation_bar = self.nav_bar
 
     def setup_list_view(self):
-        self.tree_list = ListView(expand=True, spacing=8, padding=Padding(10, 10, 10, 80))
+        self.tree_list = ListView(expand=True, spacing=8, padding=Padding(10, 10, 10, 90))
         self.loading_indicator = ProgressRing(visible=False, color=Colors.GREEN_700)
         self.empty_state = Container(
             content=Column([
@@ -271,6 +331,7 @@ class TreesApp:
             label_style=TextStyle(font_family="Comfortaa", size=10),
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
+            keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_zone = TextField(
@@ -278,6 +339,7 @@ class TreesApp:
             label_style=TextStyle(font_family="Comfortaa", size=10),
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
+            keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_row = TextField(
@@ -285,6 +347,7 @@ class TreesApp:
             label_style=TextStyle(font_family="Comfortaa", size=10),
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
+            keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_tree_number = TextField(
@@ -292,6 +355,7 @@ class TreesApp:
             label_style=TextStyle(font_family="Comfortaa", size=10),
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
+            keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_tree_code = TextField(
@@ -301,43 +365,35 @@ class TreesApp:
             text_style=TextStyle(font_family="Comfortaa"),
             read_only=True,
         )
-        self.add_latitude = TextField(
-            label="Latitude",
-            hint_text="Auto-fill with GPS",
-            border=InputBorder.OUTLINE,
-            keyboard_type=KeyboardType.NUMBER,
-            text_style=TextStyle(font_family="Comfortaa"),
+        self.location_tree_code = Text("", size=14, font_family="Comfortaa", color=Colors.GREEN_700)
+        self.location_coords_badge = Container(
+            content=Text("", size=10, font_family="Comfortaa", color=Colors.GREY_800),
+            padding=Padding(8, 4, 8, 4),
+            border=Border.all(1, Colors.GREY_300),
+            border_radius=BorderRadius(12, 12, 12, 12),
+            visible=False,
         )
-        self.add_longitude = TextField(
-            label="Longitude",
-            hint_text="Auto-fill with GPS",
-            border=InputBorder.OUTLINE,
-            keyboard_type=KeyboardType.NUMBER,
-            text_style=TextStyle(font_family="Comfortaa"),
-        )
-
-        self.location_header = Text("Location", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700)
-        self.gps_btn = IconButton(
+        self.location_gps_btn = IconButton(
             icon=Icons.MY_LOCATION,
-            icon_size=20,
+            icon_size=18,
             icon_color=Colors.GREEN_700,
             tooltip="Get GPS location",
-            on_click=lambda e: self.get_gps(self.add_latitude, self.add_longitude),
+            on_click=lambda e: self.get_gps(),
         )
-
         self.location_card = Card(
             content=Container(
                 content=Column([
                     Row([
-                        self.location_header,
-                        self.gps_btn,
+                        Text("Location", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                        self.location_coords_badge,
+                        self.location_gps_btn,
+                        self.location_tree_code,
                     ], alignment=MainAxisAlignment.SPACE_BETWEEN),
-                    Divider(height=12),
                     Row([
-                        Container(content=self.add_sector, expand=True),
-                        Container(content=self.add_zone, expand=True),
-                        Container(content=self.add_row, expand=True),
-                        Container(content=self.add_tree_number, expand=True),
+                        Container(content=self.add_sector, expand=1),
+                        Container(content=self.add_zone, expand=1),
+                        Container(content=self.add_row, expand=1),
+                        Container(content=self.add_tree_number, expand=1),
                     ], spacing=8),
                 ], spacing=10),
                 padding=Padding(16, 12, 16, 12),
@@ -352,10 +408,11 @@ class TreesApp:
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
         )
-        self.add_kind.on_change = self.on_kind_change
+        self.add_kind.on_select = self.on_kind_change
         self.add_variety = Dropdown(
             label="Variety",
             hint_text="Select variety",
+            options=[],
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
             expand=True,
@@ -398,7 +455,7 @@ class TreesApp:
         )
         self.add_take_photo_btn = FilledButton(
             content=Row([Icon(Icons.CAMERA_ALT), Text("Take Photo")], spacing=8, alignment=MainAxisAlignment.CENTER),
-            on_click=lambda _: self.show_snack("Camera not available", Colors.RED),
+            on_click=self._take_photo,
             style=ButtonStyle(color=Colors.WHITE, bgcolor=Colors.GREEN_700, padding=Padding(16, 12, 16, 12)),
         )
 
@@ -495,28 +552,13 @@ class TreesApp:
             text_style=TextStyle(font_family="Comfortaa"),
             expand=True,
         )
-        self.edit_kind.on_change = self.on_edit_kind_change
+        self.edit_kind.on_select = self.on_edit_kind_change
         self.edit_variety = Dropdown(
             label="Variety",
             hint_text="Select variety",
+            options=[],
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
-            expand=True,
-        )
-        self.edit_latitude = TextField(
-            label="Latitude",
-            border=InputBorder.OUTLINE,
-            keyboard_type=KeyboardType.NUMBER,
-            text_style=TextStyle(font_family="Comfortaa"),
-            read_only=True,
-            expand=True,
-        )
-        self.edit_longitude = TextField(
-            label="Longitude",
-            border=InputBorder.OUTLINE,
-            keyboard_type=KeyboardType.NUMBER,
-            text_style=TextStyle(font_family="Comfortaa"),
-            read_only=True,
             expand=True,
         )
         self.edit_visits_list = Column(spacing=8)
@@ -538,7 +580,7 @@ class TreesApp:
         self.add_visit_photo_btn = OutlinedButton(
             content=Text("Add Photos"),
             icon=Icons.PHOTO_CAMERA,
-            on_click=lambda _: self.show_snack("Photo capture coming soon", Colors.BLUE),
+            on_click=self._take_visit_photo,
             style=ButtonStyle(color=Colors.GREEN_700),
         )
         self.edit_save_btn = Button(
@@ -565,32 +607,21 @@ class TreesApp:
                     content=Column([
                         Text("Edit Tree", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
                         Divider(height=12),
-                        Card(
-                            content=Container(
-                                content=Column([
-                                    Row([
-                                        Text("Tree Details", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
-                                    ], alignment=MainAxisAlignment.START),
-                                    Divider(height=12),
-                                    self.edit_tree_code,
-                                    Row([self.edit_kind, self.edit_variety], spacing=10),
-                                    Row([
-                                        self.edit_latitude,
-                                        self.edit_longitude,
-                                        IconButton(
-                                            icon=Icons.MY_LOCATION,
-                                            icon_size=18,
-                                            icon_color=Colors.GREEN_700,
-                                            tooltip="Get GPS location",
-                                            on_click=lambda e: self.get_gps(self.edit_latitude, self.edit_longitude),
-                                        ),
-                                    ], spacing=10, vertical_alignment=CrossAxisAlignment.CENTER),
-                                ], spacing=12),
-                                padding=Padding(16, 12, 16, 12),
-                            ),
-                            elevation=2,
-                            margin=Margin(0, 0, 0, 12),
-                        ),
+        Card(
+            content=Container(
+                content=Column([
+                    Row([
+                        Text("Tree Details", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                    ], alignment=MainAxisAlignment.START),
+                    Divider(height=12),
+                    self.edit_tree_code,
+                    Row([self.edit_kind, self.edit_variety], spacing=10),
+                ], spacing=12),
+                padding=Padding(16, 12, 16, 12),
+            ),
+            elevation=2,
+            margin=Margin(0, 0, 0, 12),
+        ),
                         Divider(height=8),
                         Text("Visit History", size=18, weight=FontWeight.W_500, font_family="Comfortaa"),
                         self.edit_visits_list,
@@ -702,17 +733,17 @@ class TreesApp:
         self.nav_bar.selected_index = idx
         self.nav_bar.update()
 
+    def _switch_view(self, container):
+        for c in (self.list_container, self.add_container, self.edit_container,
+                  self.detail_container, self.settings_container, self.stats_container):
+            c.visible = (c is container)
+        self.main_container.update()
+
     def show_list_view(self):
         self.logger.debug("Navigating to list view")
         self.app_bar.leading = None
-        self.app_bar.update()
-        self.list_container.visible = True
-        self.add_container.visible = False
-        self.edit_container.visible = False
-        self.detail_container.visible = False
-        self.settings_container.visible = False
-        self.stats_container.visible = False
-        self.main_container.update()
+        self._switch_view(self.list_container)
+        self.page.bottom_appbar = self.pagination_bar
         self.page.update()
         invalidate_cache()
         self.current_page = 0
@@ -722,32 +753,18 @@ class TreesApp:
         self.logger.debug("Navigating to add form")
         self.back_btn.on_click = lambda _: self.show_list_view()
         self.app_bar.leading = self.back_btn
-        self.app_bar.update()
         self.reset_add_form()
-        self.list_container.visible = False
-        self.add_container.visible = True
-        self.edit_container.visible = False
-        self.detail_container.visible = False
-        self.settings_container.visible = False
-        self.stats_container.visible = False
+        self._switch_view(self.add_container)
         self.nav_bar.selected_index = 1
         self.nav_bar.update()
         self.page.bottom_appbar = None
-        self.main_container.update()
         self.page.update()
-        self.get_gps(self.add_latitude, self.add_longitude)
 
     def show_search_view(self):
-        self.list_container.visible = True
-        self.add_container.visible = False
-        self.edit_container.visible = False
-        self.detail_container.visible = False
-        self.settings_container.visible = False
-        self.stats_container.visible = False
+        self._switch_view(self.list_container)
         self.nav_bar.selected_index = 0
         self.nav_bar.update()
         self.page.bottom_appbar = None
-        self.main_container.update()
         self.page.update()
         asyncio.create_task(self.search_field.focus())
         if self.search_query:
@@ -798,9 +815,31 @@ class TreesApp:
         )
 
     def setup_stats_view(self):
-        self.stats_status_list = Column(spacing=6)
-        self.stats_kind_list = Column(spacing=6)
         self.stats_total_label = Text("Total Trees: 0", size=18, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700)
+        self.stats_searched_label = Text("Searched Trees: 0", size=18, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.BLUE_700)
+        self.stats_heatmap_grid = Column(spacing=2)
+        self.stats_heatmap_legend = Row(spacing=0)
+        self.stats_heatmap_empty = Container(
+            content=Text("No Tree Available", size=16, color=Colors.GREY_500, font_family="Comfortaa"),
+            height=120, alignment=alignment.Alignment(0, 0), visible=False,
+        )
+        self.stats_bar_chart = BarChart(
+            expand=True,
+            height=300,
+            group_spacing=8,
+            tooltip=BarChartTooltip(bgcolor=Colors.with_opacity(0.8, Colors.BLACK)),
+            left_axis=ChartAxis(
+                label_size=40,
+            ),
+            bottom_axis=ChartAxis(
+                label_size=40,
+            ),
+        )
+        self.stats_bar_legend = Row(spacing=0, wrap=True)
+        self.stats_bar_empty = Container(
+            content=Text("No Tree Available", size=16, color=Colors.GREY_500, font_family="Comfortaa"),
+            height=120, alignment=alignment.Alignment(0, 0), visible=False,
+        )
 
         self.stats_container = Container(
             content=ListView([
@@ -810,119 +849,205 @@ class TreesApp:
                             Text("Statistics", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700, expand=True),
                         ]),
                         Divider(height=2, color=Colors.GREEN_200),
-                        Container(height=10),
+                        Container(height=20),
                         self.stats_total_label,
                         Container(height=10),
-                        Text("Tree Status Distribution", size=16, weight=FontWeight.W_500, font_family="Comfortaa", color=Colors.GREEN_700),
+                        self.stats_searched_label,
+                        Container(height=20),
+                        Text("Tree Density Heatmap", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
                         Divider(height=2),
-                        self.stats_status_list,
+                        Container(
+                            content=self.stats_heatmap_grid,
+                            border=Border.all(2, Colors.GREEN_700),
+                            border_radius=BorderRadius(10, 10, 10, 10),
+                            padding=Padding(8, 8, 8, 8),
+                            bgcolor=Colors.WHITE,
+                        ),
+                        self.stats_heatmap_empty,
                         Container(height=10),
-                        Text("Tree Kind Distribution", size=16, weight=FontWeight.W_500, font_family="Comfortaa", color=Colors.GREEN_700),
+                        self.stats_heatmap_legend,
+                        Container(height=30),
+                        Text("Trees per Sector", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
                         Divider(height=2),
-                        self.stats_kind_list,
-                    ], spacing=12, horizontal_alignment=CrossAxisAlignment.START),
-                    padding=Padding(20, 20, 20, 20),
+                        self.stats_bar_chart,
+                        self.stats_bar_empty,
+                        Container(height=10),
+                        self.stats_bar_legend,
+                    ], spacing=8, horizontal_alignment=CrossAxisAlignment.STRETCH),
+                    padding=Padding(0, 20, 0, 20),
                 ),
-            ], expand=True, padding=Padding(0, 0, 0, 20)),
+            ], expand=True, padding=Padding(0, 0, 0, 0)),
             visible=False,
         )
 
     def show_stats_view(self):
-        self.list_container.visible = False
-        self.add_container.visible = False
-        self.edit_container.visible = False
-        self.detail_container.visible = False
-        self.settings_container.visible = False
-        self.stats_container.visible = True
+        self._switch_view(self.stats_container)
         self.nav_bar.selected_index = 0
         self.nav_bar.update()
         self.page.bottom_appbar = None
         self.back_btn.on_click = lambda _: self.show_list_view()
         self.app_bar.leading = self.back_btn
-        self.app_bar.update()
-        self.main_container.update()
         self.page.update()
         self.load_stats()
 
     def load_stats(self):
         try:
-            all_trees = get_all_trees()
+            if self.search_query or self.filter_kind or self.filter_status:
+                trees = search_trees(self.search_query, self.filter_kind, self.filter_status)
+            else:
+                trees = get_all_trees()
         except Exception as ex:
             self.logger.error("Failed to load stats: %s", ex)
             self.show_snack("Error loading statistics", Colors.RED)
             return
 
-        total = len(all_trees)
+        total = len(trees)
+        searched = sum(1 for t in trees if t.get("visits"))
         self.stats_total_label.value = f"Total Trees: {total}"
+        self.stats_searched_label.value = f"Searched Trees: {searched}"
 
-        status_counts = {}
-        kind_counts = {}
-        for t in all_trees:
-            status = t.get("last_status", "No visits")
-            status_counts[status] = status_counts.get(status, 0) + 1
-            kind = t.get("kind", "Unknown")
-            kind_counts[kind] = kind_counts.get(kind, 0) + 1
+        # --- Heatmap data ---
+        matrix = {}
+        all_sectors = set()
+        all_zones = set()
+        for t in trees:
+            code = t.get("tree_code", "")
+            m = re.match(r"S(\d+)Z(\d+)", code)
+            if m:
+                s, z = m.groups()
+                all_sectors.add(s)
+                all_zones.add(z)
+                matrix.setdefault(s, {}).setdefault(z, 0)
+                matrix[s][z] += 1
 
-        kind_colors = [
-            Colors.GREEN_600, Colors.BLUE_600, Colors.ORANGE_600, Colors.RED_600,
-            Colors.PURPLE_600, Colors.TEAL_600, Colors.AMBER_600, Colors.INDIGO_600,
-        ]
+        self.stats_heatmap_grid.controls.clear()
+        if matrix:
+            self.stats_heatmap_empty.visible = False
+            sectors = sorted(all_sectors, key=int)
+            zones = sorted(all_zones, key=int)
+            counts = [matrix[s].get(z, 0) for s in sectors for z in zones]
+            max_count = max(counts) if counts else 1
 
-        self.stats_status_list.controls.clear()
-        max_status = max(status_counts.values()) if status_counts else 1
-        for status, count in sorted(status_counts.items(), key=lambda x: -x[1]):
-            color = STATUS_LOOKUP.get(status, Colors.GREY)
-            pct = count / max_status
-            self.stats_status_list.controls.append(
-                Column([
-                    Row([
-                        Text(status, size=13, weight=FontWeight.W_500, font_family="Comfortaa", expand=True),
-                        Text(str(count), size=13, font_family="Comfortaa", color=Colors.GREY_700),
-                    ], spacing=4),
+            header = Row([
+                Container(width=40, height=24),
+                *[Container(
+                    content=Text(f"Z{z}", size=11, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_800, text_align=ft.TextAlign.CENTER),
+                    expand=True, alignment=alignment.Alignment(0, 0),
+                ) for z in zones],
+            ], spacing=2, vertical_alignment=CrossAxisAlignment.CENTER)
+            self.stats_heatmap_grid.controls.append(header)
+
+            for s in sectors:
+                row = [Container(
+                    content=Text(f"S{s}", size=11, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_800),
+                    width=40, height=40, alignment=alignment.Alignment(0, 0),
+                )]
+                for z in zones:
+                    cnt = matrix[s].get(z, 0)
+                    intensity = cnt / max_count if max_count else 0
+                    r = int(220 - 180 * intensity)
+                    g = int(245 - 175 * intensity)
+                    b = int(220 - 150 * intensity)
+                    hex_color = f"#{r:02x}{g:02x}{b:02x}"
+                    row.append(Container(
+                        content=Text(str(cnt) if cnt else "", size=12, font_family="Comfortaa", color=Colors.WHITE if intensity > 0.5 else Colors.GREY_800, text_align=ft.TextAlign.CENTER),
+                        expand=True, height=40, bgcolor=hex_color, alignment=alignment.Alignment(0, 0),
+                        border_radius=BorderRadius(3, 3, 3, 3),
+                    ))
+                self.stats_heatmap_grid.controls.append(Row(row, spacing=2))
+        else:
+            self.stats_heatmap_empty.visible = True
+
+        self.stats_heatmap_legend.controls.clear()
+        if matrix:
+            steps = 6
+            for i in range(steps):
+                p = i / (steps - 1)
+                r = int(220 - 180 * p)
+                g = int(245 - 175 * p)
+                b = int(220 - 150 * p)
+                hex_color = f"#{r:02x}{g:02x}{b:02x}"
+                self.stats_heatmap_legend.controls.append(
                     Container(
-                        height=20,
-                        bgcolor=color,
-                        border_radius=BorderRadius(10, 10, 10, 10),
-                        width=max(20, int(200 * pct)),
-                    ),
-                ], spacing=2, tight=True)
+                        content=Text(str(int(p * 100)) + "%", size=9, font_family="Comfortaa", color=Colors.WHITE if p > 0.5 else Colors.GREY_800, text_align=ft.TextAlign.CENTER),
+                        width=50, height=24, bgcolor=hex_color, alignment=alignment.Alignment(0, 0),
+                    )
+                )
+
+        # --- Bar chart data ---
+        sector_counts = {}
+        for t in trees:
+            code = t.get("tree_code", "")
+            m = re.match(r"S(\d+)", code)
+            if m:
+                s = m.group(1)
+                sector_counts[s] = sector_counts.get(s, 0) + 1
+
+        self.stats_bar_empty.visible = not sector_counts
+        self.stats_bar_chart.visible = bool(sector_counts)
+
+        if sector_counts:
+            chart_groups = []
+            sector_colors = [
+                Colors.GREEN_700, Colors.GREEN_500, Colors.GREEN_300,
+                Colors.TEAL_700, Colors.TEAL_500, Colors.TEAL_300,
+                Colors.CYAN_700, Colors.CYAN_500, Colors.CYAN_300,
+                Colors.BLUE_700, Colors.BLUE_500, Colors.BLUE_300,
+            ]
+            sorted_sectors = sorted(sector_counts.keys(), key=int)
+            bar_max = max(sector_counts.values()) if sector_counts else 1
+
+            for i, s in enumerate(sorted_sectors):
+                cnt = sector_counts[s]
+                color = sector_colors[i % len(sector_colors)]
+                chart_groups.append(
+                    BarChartGroup(
+                        x=i,
+                        rods=[
+                            BarChartRod(
+                                to_y=cnt,
+                                color=color,
+                                width=20,
+                                tooltip=f"S{s}: {cnt} trees",
+                                border_radius=BorderRadius(4, 4, 0, 0),
+                            )
+                        ],
+                    )
+                )
+
+            self.stats_bar_chart.groups = chart_groups
+            self.stats_bar_chart.max_y = bar_max + 1
+            self.stats_bar_chart.bottom_axis = ChartAxis(
+                labels=[
+                    ChartAxisLabel(value=i, label=Text(f"S{s}", size=11, font_family="Comfortaa"))
+                    for i, s in enumerate(sorted_sectors)
+                ],
+                label_size=40,
             )
 
-        self.stats_kind_list.controls.clear()
-        max_kind = max(kind_counts.values()) if kind_counts else 1
-        for i, (kind, count) in enumerate(sorted(kind_counts.items(), key=lambda x: -x[1])):
-            color = kind_colors[i % len(kind_colors)]
-            pct = count / max_kind
-            self.stats_kind_list.controls.append(
-                Column([
+            self.stats_bar_legend.controls.clear()
+            for i, s in enumerate(sorted_sectors):
+                color = sector_colors[i % len(sector_colors)]
+                cnt = sector_counts[s]
+                self.stats_bar_legend.controls.append(
                     Row([
-                        Text(kind, size=13, weight=FontWeight.W_500, font_family="Comfortaa", expand=True),
-                        Text(str(count), size=13, font_family="Comfortaa", color=Colors.GREY_700),
-                    ], spacing=4),
-                    Container(
-                        height=20,
-                        bgcolor=color,
-                        border_radius=BorderRadius(10, 10, 10, 10),
-                        width=max(20, int(200 * pct)),
-                    ),
-                ], spacing=2, tight=True)
-            )
+                        Container(width=12, height=12, bgcolor=color, border_radius=BorderRadius(3, 3, 3, 3)),
+                        Text(f"S{s}: {cnt}", size=11, font_family="Comfortaa"),
+                    ], spacing=4)
+                )
 
-        self.stats_status_list.update()
-        self.stats_kind_list.update()
+        self.stats_heatmap_grid.update()
+        self.stats_heatmap_legend.update()
+        self.stats_bar_chart.update()
+        self.stats_bar_legend.update()
         self.stats_total_label.update()
+        self.stats_searched_label.update()
 
     def show_settings_view(self):
-        self.list_container.visible = False
-        self.add_container.visible = False
-        self.edit_container.visible = False
-        self.detail_container.visible = False
-        self.settings_container.visible = True
-        self.stats_container.visible = False
+        self._switch_view(self.settings_container)
         self.nav_bar.selected_index = 2
         self.nav_bar.update()
         self.page.bottom_appbar = None
-        self.main_container.update()
         self.page.update()
 
     def show_help(self, e):
@@ -1011,11 +1136,11 @@ class TreesApp:
             self.add_kind.value = None
             self.add_variety.value = None
             self.add_variety.options = []
-            self.add_latitude.value = ""
-            self.add_longitude.value = ""
             self.add_status.value = None
             self.add_notes.value = ""
             self.captured_photo_path = None
+            self.captured_gps_lat = ""
+            self.captured_gps_lon = ""
             self.add_photo_img.visible = False
             self.add_photo_placeholder.visible = True
             self.add_take_photo_btn.visible = True
@@ -1024,6 +1149,55 @@ class TreesApp:
 
             # Note: Controls will be updated when they are added to the page
             # to avoid "Control must be added to the page first" error
+
+    async def _take_photo(self):
+        if not self.camera_available:
+            self.show_snack("Camera not available on this platform", Colors.RED)
+            return
+        try:
+            self.show_snack("Taking photo...", Colors.BLUE)
+            await self.camera.initialize()
+            img_bytes = await self.camera.take_picture()
+            import tempfile
+            tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+            tmp.write(img_bytes)
+            tmp.close()
+            self.captured_photo_path = tmp.name
+            self.add_photo_img.src = self.captured_photo_path
+            self.add_photo_img.visible = True
+            self.add_photo_placeholder.visible = False
+            self.add_photo_img.update()
+            self.add_photo_placeholder.update()
+            self.show_snack("Photo captured!", Colors.GREEN)
+        except Exception as ex:
+            self.logger.error("Camera capture failed: %s", ex, exc_info=True)
+            self.show_snack(f"Camera error: {ex}", Colors.RED)
+
+    async def _take_visit_photo(self):
+        if not self.camera_available:
+            self.show_snack("Camera not available on this platform", Colors.RED)
+            return
+        try:
+            self.show_snack("Taking photo...", Colors.BLUE)
+            await self.camera.initialize()
+            img_bytes = await self.camera.take_picture()
+            import tempfile, uuid as _uuid
+            tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+            tmp.write(img_bytes)
+            tmp.close()
+            photo_path = copy_photo_to_storage(tmp.name)
+            self.new_photos.append(photo_path)
+            self.add_visit_photos_grid.controls.append(
+                Container(
+                    content=Image(src=photo_path, fit=BoxFit.COVER, border_radius=BorderRadius(8, 8, 8, 8)),
+                    width=80, height=80, border_radius=BorderRadius(8, 8, 8, 8), clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                )
+            )
+            self.add_visit_photos_grid.update()
+            self.show_snack("Photo captured!", Colors.GREEN)
+        except Exception as ex:
+            self.logger.error("Camera capture failed: %s", ex, exc_info=True)
+            self.show_snack(f"Camera error: {ex}", Colors.RED)
 
     def show_loading_overlay(self):
         self.loading_overlay.visible = True
@@ -1056,7 +1230,6 @@ class TreesApp:
 
         self.tree_count_badge.content = Text(str(total), size=11, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.WHITE)
         self.tree_count_badge.visible = total > 0
-        self.tree_count_badge.update()
 
         if not total:
             self.tree_list.visible = False
@@ -1073,6 +1246,7 @@ class TreesApp:
                 self.tree_list.controls.append(self.create_tree_card(tree))
 
         self.update_pagination(total)
+        self.tree_count_badge.update()
         self.tree_list.update()
         self.empty_state.update()
         self.pagination_controls.update()
@@ -1181,9 +1355,7 @@ class TreesApp:
         def on_edit():
             self.current_tree_id = tree["id"]
             self.populate_edit_form(tree)
-            self.list_container.visible = False
-            self.edit_container.visible = True
-            self.main_container.update()
+            self._switch_view(self.edit_container)
 
         def on_delete():
             self.current_tree_id = tree["id"]
@@ -1253,39 +1425,7 @@ class TreesApp:
             return
 
         visits = tree.get("visits", [])
-        items = []
-        for visit in reversed(visits):
-            status = visit.get("status", "")
-            color = STATUS_LOOKUP.get(status, Colors.GREY)
-            photos = visit.get("photos", [])
-            photo_controls = []
-            for p in photos:
-                photo_controls.append(
-                    Container(
-                        content=Image(src=p, fit=BoxFit.COVER, width=50, height=50, border_radius=BorderRadius(6, 6, 6, 6)),
-                        width=50, height=50, border_radius=BorderRadius(6, 6, 6, 6), clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                    )
-                )
-
-            items.append(
-                Card(
-                    content=Container(
-                        content=Column([
-                            Row([
-                                Text(visit.get("visit_dt", ""), weight=FontWeight.BOLD, size=13, font_family="Comfortaa"),
-                                Container(
-                                    content=Text(status, size=11, weight=FontWeight.W_500, color=Colors.WHITE, font_family="Comfortaa"),
-                                    bgcolor=color, padding=Padding(6, 2, 6, 2), border_radius=BorderRadius(10, 10, 10, 10),
-                                ),
-                            ], alignment=MainAxisAlignment.SPACE_BETWEEN),
-                            Text(visit.get("notes", "No notes"), size=13, color=Colors.GREY_700, font_family="Comfortaa"),
-                            Row(photo_controls, spacing=4) if photo_controls else Container(),
-                        ], spacing=4, tight=True),
-                        padding=Padding(12, 10, 12, 10),
-                    ),
-                    elevation=1,
-                )
-            )
+        items = [_build_visit_card(v) for v in reversed(visits)]
 
         bs = BottomSheet(
             content=Container(
@@ -1307,18 +1447,11 @@ class TreesApp:
         self.current_tree_data = tree
         self.back_btn.on_click = lambda _: self.show_list_view()
         self.app_bar.leading = self.back_btn
-        self.app_bar.update()
         self.populate_detail_view(tree)
-        self.list_container.visible = False
-        self.add_container.visible = False
-        self.edit_container.visible = False
-        self.detail_container.visible = True
-        self.settings_container.visible = False
-        self.stats_container.visible = False
+        self._switch_view(self.detail_container)
         self.nav_bar.selected_index = 0
         self.nav_bar.update()
         self.page.bottom_appbar = None
-        self.main_container.update()
         self.page.update()
 
     def populate_detail_view(self, tree: dict):
@@ -1349,37 +1482,7 @@ class TreesApp:
             )
 
         self.detail_visits_list.controls.clear()
-        for visit in reversed(visits):
-            status = visit.get("status", "")
-            status_color = STATUS_LOOKUP.get(status, Colors.GREY)
-            photos = visit.get("photos", [])
-            photo_chips = []
-            for p in photos:
-                photo_chips.append(
-                    Container(
-                        content=Image(src=p, fit=BoxFit.COVER, width=50, height=50, border_radius=BorderRadius(6, 6, 6, 6)),
-                        width=50, height=50, border_radius=BorderRadius(6, 6, 6, 6), clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                    )
-                )
-            self.detail_visits_list.controls.append(
-                Card(
-                    content=Container(
-                        content=Column([
-                            Row([
-                                Text(visit.get("visit_dt", ""), weight=FontWeight.BOLD, size=13, font_family="Comfortaa"),
-                                Container(
-                                    content=Text(status, size=11, weight=FontWeight.W_500, color=Colors.WHITE, font_family="Comfortaa"),
-                                    bgcolor=status_color, padding=Padding(6, 2, 6, 2), border_radius=BorderRadius(10, 10, 10, 10),
-                                ),
-                            ], alignment=MainAxisAlignment.SPACE_BETWEEN),
-                            Text(visit.get("notes", "No notes"), size=13, color=Colors.GREY_700, font_family="Comfortaa"),
-                            Row(photo_chips, spacing=4) if photo_chips else Container(),
-                        ], spacing=4, tight=True),
-                        padding=Padding(12, 10, 12, 10),
-                    ),
-                    elevation=1,
-                )
-            )
+        self.detail_visits_list.controls.extend(_build_visit_card(v) for v in reversed(visits))
 
         self.detail_tree_code.update()
         self.detail_kind.update()
@@ -1394,55 +1497,19 @@ class TreesApp:
         self.current_tree_id = self.current_tree_data["id"]
         self.back_btn.on_click = lambda _: self.show_tree_detail(self.current_tree_data) if self.current_tree_data else self.show_list_view()
         self.app_bar.leading = self.back_btn
-        self.app_bar.update()
         self.populate_edit_form(self.current_tree_data)
-        self.detail_container.visible = False
-        self.edit_container.visible = True
-        self.stats_container.visible = False
+        self._switch_view(self.edit_container)
         self.page.bottom_appbar = None
         self.page.update()
-        self.main_container.update()
 
     def populate_edit_form(self, tree: dict):
         self.edit_tree_code.value = tree.get("tree_code", "")
         self.edit_kind.value = tree.get("kind", "")
         self.edit_variety.value = tree.get("variety", "")
-        self.edit_latitude.value = tree.get("latitude", "")
-        self.edit_longitude.value = tree.get("longitude", "")
 
         self.edit_visits_list.controls.clear()
         visits = tree.get("visits", [])
-        for visit in reversed(visits):
-            status = visit.get("status", "")
-            status_color = STATUS_LOOKUP.get(status, Colors.GREY)
-            photos = visit.get("photos", [])
-            photo_controls = []
-            for p in photos:
-                photo_controls.append(
-                    Container(
-                        content=Image(src=p, fit=BoxFit.COVER, width=40, height=40, border_radius=BorderRadius(6, 6, 6, 6)),
-                        width=40, height=40, border_radius=BorderRadius(6, 6, 6, 6), clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                    )
-                )
-            self.edit_visits_list.controls.append(
-                Card(
-                    content=Container(
-                        content=Column([
-                            Row([
-                                Text(visit.get("visit_dt", ""), weight=FontWeight.BOLD, size=13, font_family="Comfortaa"),
-                                Container(
-                                    content=Text(status, size=11, weight=FontWeight.W_500, color=Colors.WHITE, font_family="Comfortaa"),
-                                    bgcolor=status_color, padding=Padding(6, 2, 6, 2), border_radius=BorderRadius(10, 10, 10, 10),
-                                ),
-                            ], alignment=MainAxisAlignment.SPACE_BETWEEN),
-                            Text(visit.get("notes", "No notes"), size=13, color=Colors.GREY_700, font_family="Comfortaa"),
-                            Row(photo_controls, spacing=4) if photo_controls else Container(),
-                        ], spacing=4, tight=True),
-                        padding=Padding(12, 10, 12, 10),
-                    ),
-                    elevation=1,
-                )
-            )
+        self.edit_visits_list.controls.extend(_build_visit_card(v, photo_size=40) for v in reversed(visits))
 
         self.add_visit_status.value = None
         self.add_visit_notes.value = ""
@@ -1452,8 +1519,6 @@ class TreesApp:
         self.edit_tree_code.update()
         self.edit_kind.update()
         self.edit_variety.update()
-        self.edit_latitude.update()
-        self.edit_longitude.update()
         self.edit_visits_list.update()
         self.add_visit_status.update()
         self.add_visit_notes.update()
@@ -1504,8 +1569,10 @@ class TreesApp:
         tree_code = self.add_tree_code.value.strip()
         kind = self.add_kind.value
         variety = (self.add_variety.value or "").strip()
-        latitude = (self.add_latitude.value or "").strip()
-        longitude = (self.add_longitude.value or "").strip()
+        
+        latitude = self.captured_gps_lat
+        longitude = self.captured_gps_lon
+        
         status = self.add_status.value
         notes = (self.add_notes.value or "").strip()
 
@@ -1517,6 +1584,24 @@ class TreesApp:
             return
         if not status:
             self.show_snack("Status is required", Colors.RED)
+            return
+
+        sector = self.add_sector.value.strip()
+        zone = self.add_zone.value.strip()
+        row = self.add_row.value.strip()
+        tree_number = self.add_tree_number.value.strip()
+
+        if not sector or not sector.isdigit() or int(sector) <= 0:
+            self.show_snack("Sector must be a positive number", Colors.RED)
+            return
+        if not zone or not zone.isdigit() or int(zone) <= 0:
+            self.show_snack("Zone must be a positive number", Colors.RED)
+            return
+        if not row or not row.isdigit() or int(row) <= 0:
+            self.show_snack("Row must be a positive number", Colors.RED)
+            return
+        if not tree_number or not tree_number.isdigit() or int(tree_number) <= 0:
+            self.show_snack("Tree must be a positive number", Colors.RED)
             return
 
         photo_path = None
@@ -1564,10 +1649,12 @@ class TreesApp:
             self.add_variety.update()
             self.add_status.update()
             self.add_notes.update()
-            if self.add_photo_img.page:
+            try:
                 self.add_photo_img.update()
                 self.add_photo_placeholder.update()
                 self.add_take_photo_btn.update()
+            except RuntimeError:
+                pass
         else:
             self.reset_add_form()
             self.show_list_view()
@@ -1584,8 +1671,9 @@ class TreesApp:
         tree_code = self.edit_tree_code.value.strip()
         kind = self.edit_kind.value
         variety = (self.edit_variety.value or "").strip()
-        latitude = (self.edit_latitude.value or "").strip()
-        longitude = (self.edit_longitude.value or "").strip()
+        
+        latitude = self.current_tree_data.get("latitude", "") if self.current_tree_data else ""
+        longitude = self.current_tree_data.get("longitude", "") if self.current_tree_data else ""
 
         if not tree_code:
             self.show_snack("Tree code is required", Colors.RED)
@@ -1612,21 +1700,32 @@ class TreesApp:
         self.page.snack_bar.open = True
         self.page.update()
 
-    def start_voice_recording(self, e=None):
-        self.show_snack("Recording voice note...", Colors.BLUE)
-
-    def get_gps(self, lat_field: TextField, lon_field: TextField):
-        def callback(lat, lon):
-            lat_field.value = lat
-            lon_field.value = lon
-            lat_field.update()
-            lon_field.update()
-            # Update location header with lat/lon
-            if hasattr(self, 'location_header'):
-                self.update_tree_code()
-            self.show_snack("GPS coordinates captured", Colors.GREEN)
-
-        get_gps_coordinates(callback)
+    def get_gps(self):
+        if not self.geolocator_available:
+            self.show_snack("GPS not available on this platform", Colors.RED)
+            return
+        async def _get_position():
+            try:
+                pos = await self.geolocator.get_current_position(
+                    GeolocatorConfiguration(
+                        accuracy=GeolocatorPositionAccuracy.HIGH,
+                    )
+                )
+                self.captured_gps_lat = str(pos.latitude)
+                self.captured_gps_lon = str(pos.longitude)
+                if hasattr(self, 'location_coords_badge'):
+                    self.location_coords_badge.content = Text(
+                        f"{pos.latitude:.6f}, {pos.longitude:.6f}",
+                        size=10, font_family="Comfortaa", color=Colors.GREY_800,
+                    )
+                    self.location_coords_badge.visible = True
+                    self.location_coords_badge.update()
+                self.show_snack("GPS coordinates captured", Colors.GREEN)
+            except Exception as ex:
+                self.logger.warning("Geolocator failed: %s", ex)
+                self.show_snack("GPS location unavailable", Colors.RED)
+        import asyncio
+        asyncio.create_task(_get_position())
         self.show_snack("Getting GPS location...", Colors.BLUE)
 
 
