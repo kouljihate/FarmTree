@@ -34,6 +34,225 @@ from app.logger import get_logger, read_logs
 STATUS_DROPDOWN_ITEMS = [DropdownOption(text=label, key=label) for label in STATUS_LOOKUP]
 KIND_DROPDOWN_ITEMS = [DropdownOption(text=k, key=k) for k in TREE_KINDS]
 
+TRANSLATIONS = {
+    "en": {
+        "app_title": "Farm Tree Manager",
+        "nav_trees": "Trees",
+        "nav_add": "Add",
+        "nav_settings": "Settings",
+        "search_hint": "Search trees... (use | for AND)",
+        "search": "Search",
+        "refresh": "Refresh",
+        "statistics": "Statistics",
+        "add_new_tree": "Add New Tree",
+        "tree_details": "Tree Details",
+        "photo": "Photo",
+        "location": "Location",
+        "take_photo": "Take Photo",
+        "no_photo": "No photo captured",
+        "sector": "Sector",
+        "zone": "Zone",
+        "row": "Row",
+        "tree": "Tree",
+        "tree_code": "Tree Code",
+        "tree_code_hint": "Auto-generated from Sector/Zone/Row/Tree#",
+        "kind": "Kind",
+        "kind_required": "Kind *",
+        "variety": "Variety",
+        "variety_hint": "Select variety",
+        "status": "Status",
+        "status_required": "Status *",
+        "notes": "Notes",
+        "save_tree": "Save Tree",
+        "save_next": "Save & Next",
+        "edit_tree": "Edit Tree",
+        "visit_history": "Visit History",
+        "add_new_visit": "Add New Visit",
+        "visit_status": "Visit Status *",
+        "visit_notes": "Visit Notes",
+        "visit_photos": "Visit Photos",
+        "add_photos": "Add Photos",
+        "save_changes": "Save Changes",
+        "delete_tree": "Delete Tree",
+        "edit": "Edit",
+        "new_visit": "New Visit",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "close": "Close",
+        "yes": "Yes",
+        "no": "No",
+        "settings": "Settings",
+        "help": "Help",
+        "help_subtitle": "Learn how to use the app",
+        "about": "About",
+        "about_subtitle": "Farm Tree Manager v",
+        "view_logs": "View Logs",
+        "view_logs_subtitle": "Check app logs for troubleshooting",
+        "language": "Language",
+        "language_subtitle": "Change app language",
+        "total_trees": "Total Trees: ",
+        "searched_trees": "Searched Trees: ",
+        "heatmap_title": "Tree Density Heatmap",
+        "barchart_title": "Trees per Sector",
+        "no_tree_available": "No Tree Available",
+        "no_trees_found": "No trees found",
+        "tap_to_add": "Tap + to add your first tree",
+        "loading": "Loading trees...",
+        "loading_sub": "Please wait while we gather your data",
+        "page": "Page ",
+        "back": "Back",
+        "help_title": "Help",
+        "help_text_1": "Tap + to add a new tree.",
+        "help_text_2": "Tap a tree card to view its details.",
+        "help_text_3": "Long-press a tree for quick actions.",
+        "help_text_4": "Use the search bar to find trees.",
+        "help_text_5": "Track visits and update tree status.",
+        "help_text_6": "Photos and notes can be added per visit.",
+        "about_title": "About",
+        "about_desc": "A farm tree management app for tracking tree health, visits, and maintenance.",
+        "logs_title": "Logs",
+        "confirm_delete": "Are you sure you want to delete this tree and all its visits?",
+        "delete_title": "Delete Tree",
+        "actions": "Actions",
+        "edit_action": "Edit Tree",
+        "quick_status": "Quick Status Change",
+        "view_history": "View History",
+        "delete_action": "Delete Tree",
+        "change_status": "Change Status",
+        "gps_getting": "Getting GPS location...",
+        "gps_captured": "GPS coordinates captured",
+        "gps_unavailable": "GPS location unavailable",
+        "camera_not_available": "Camera not available on this platform",
+        "photo_captured": "Photo captured!",
+        "camera_error": "Camera error: ",
+        "tree_added": "Tree added successfully!",
+        "tree_added_next": "Tree added! Ready for next.",
+        "tree_updated": "Tree updated successfully!",
+        "tree_deleted": "Tree deleted",
+        "error_saving": "Error saving tree",
+        "error_updating": "Error updating tree",
+        "error_deleting": "Error deleting tree",
+        "error_loading": "Error loading trees",
+        "error_stats": "Error loading statistics",
+        "tree_code_required": "Tree code is required",
+        "kind_required_msg": "Kind is required",
+        "status_required_msg": "Status is required",
+        "sector_positive": "Sector must be a positive number",
+        "zone_positive": "Zone must be a positive number",
+        "row_positive": "Row must be a positive number",
+        "tree_positive": "Tree must be a positive number",
+        "error_saving_photo": "Error saving photo",
+    },
+    "ar": {
+        "app_title": "مدير أشجار المزرعة",
+        "nav_trees": "الأشجار",
+        "nav_add": "إضافة",
+        "nav_settings": "الإعدادات",
+        "search_hint": "بحث في الأشجار... (استخدم | لـ و)",
+        "search": "بحث",
+        "refresh": "تحديث",
+        "statistics": "الإحصائيات",
+        "add_new_tree": "إضافة شجرة جديدة",
+        "tree_details": "تفاصيل الشجرة",
+        "photo": "الصورة",
+        "location": "الموقع",
+        "take_photo": "التقاط صورة",
+        "no_photo": "لم يتم التقاط صورة",
+        "sector": "القطاع",
+        "zone": "المنطقة",
+        "row": "الصف",
+        "tree": "الشجرة",
+        "tree_code": "رمز الشجرة",
+        "tree_code_hint": "يُولّد تلقائياً من القطاع/المنطقة/الصف/رقم الشجرة",
+        "kind": "النوع",
+        "kind_required": "النوع *",
+        "variety": "الصنف",
+        "variety_hint": "اختر الصنف",
+        "status": "الحالة",
+        "status_required": "الحالة *",
+        "notes": "ملاحظات",
+        "save_tree": "حفظ الشجرة",
+        "save_next": "حفظ والتالي",
+        "edit_tree": "تعديل الشجرة",
+        "visit_history": "سجل الزيارات",
+        "add_new_visit": "إضافة زيارة جديدة",
+        "visit_status": "حالة الزيارة *",
+        "visit_notes": "ملاحظات الزيارة",
+        "visit_photos": "صور الزيارة",
+        "add_photos": "إضافة صور",
+        "save_changes": "حفظ التغييرات",
+        "delete_tree": "حذف الشجرة",
+        "edit": "تعديل",
+        "new_visit": "زيارة جديدة",
+        "delete": "حذف",
+        "cancel": "إلغاء",
+        "close": "إغلاق",
+        "yes": "نعم",
+        "no": "لا",
+        "settings": "الإعدادات",
+        "help": "المساعدة",
+        "help_subtitle": "تعرف على كيفية استخدام التطبيق",
+        "about": "حول",
+        "about_subtitle": "مدير أشجار المزرعة v",
+        "view_logs": "عرض السجلات",
+        "view_logs_subtitle": "تحقق من سجلات التطبيق لحل المشكلات",
+        "language": "اللغة",
+        "language_subtitle": "تغيير لغة التطبيق",
+        "total_trees": "إجمالي الأشجار: ",
+        "searched_trees": "الأشجار المُبحث عنها: ",
+        "heatmap_title": "خريطة كثافة الأشجار",
+        "barchart_title": "الأشجار حسب القطاع",
+        "no_tree_available": "لا توجد أشجار متاحة",
+        "no_trees_found": "لم يتم العثور على أشجار",
+        "tap_to_add": "اضغط + لإضافة أول شجرة",
+        "loading": "جاري تحميل الأشجار...",
+        "loading_sub": "يرجى الانتظار حتى نجمع بياناتك",
+        "page": "صفحة ",
+        "back": "رجوع",
+        "help_title": "المساعدة",
+        "help_text_1": "اضغط + لإضافة شجرة جديدة.",
+        "help_text_2": "اضغط على بطاقة الشجرة لعرض تفاصيلها.",
+        "help_text_3": "اضغط مطولاً على شجرة للإجراءات السريعة.",
+        "help_text_4": "استخدم شريط البحث للعثور على الأشجار.",
+        "help_text_5": "تتبع الزيارات وحدّث حالة الشجرة.",
+        "help_text_6": "يمكن إضافة صور وملاحظات لكل زيارة.",
+        "about_title": "حول",
+        "about_desc": "تطبيق إدارة أشجار المزرعة لتتبع صحة الأشجار والزيارات والصيانة.",
+        "logs_title": "السجلات",
+        "confirm_delete": "هل أنت متأكد أنك تريد حذف هذه الشجرة وجميع زياراتها؟",
+        "delete_title": "حذف الشجرة",
+        "actions": "الإجراءات",
+        "edit_action": "تعديل الشجرة",
+        "quick_status": "تغيير سريع للحالة",
+        "view_history": "عرض السجل",
+        "delete_action": "حذف الشجرة",
+        "change_status": "تغيير الحالة",
+        "gps_getting": "جاري الحصول على الموقع...",
+        "gps_captured": "تم التقاط إحداثيات GPS",
+        "gps_unavailable": "موقع GPS غير متاح",
+        "camera_not_available": "الكاميرا غير متاحة على هذه المنصة",
+        "photo_captured": "تم التقاط الصورة!",
+        "camera_error": "خطأ في الكاميرا: ",
+        "tree_added": "تمت إضافة الشجرة بنجاح!",
+        "tree_added_next": "تمت الإضافة! جاهز للتالي.",
+        "tree_updated": "تم تحديث الشجرة بنجاح!",
+        "tree_deleted": "تم حذف الشجرة",
+        "error_saving": "خطأ في حفظ الشجرة",
+        "error_updating": "خطأ في تحديث الشجرة",
+        "error_deleting": "خطأ في حذف الشجرة",
+        "error_loading": "خطأ في تحميل الأشجار",
+        "error_stats": "خطأ في تحميل الإحصائيات",
+        "tree_code_required": "رمز الشجرة مطلوب",
+        "kind_required_msg": "النوع مطلوب",
+        "status_required_msg": "الحالة مطلوبة",
+        "sector_positive": "يجب أن يكون القطاع رقماً موجباً",
+        "zone_positive": "يجب أن تكون المنطقة رقماً موجباً",
+        "row_positive": "يجب أن يكون الصف رقماً موجباً",
+        "tree_positive": "يجب أن يكون رقم الشجرة رقماً موجباً",
+        "error_saving_photo": "خطأ في حفظ الصورة",
+    },
+}
+
 
 def _build_visit_card(visit: dict, photo_size: int = 50) -> Card:
     status = visit.get("status", "")
@@ -90,6 +309,7 @@ class TreesApp:
         self.captured_photo_path = None
         self.captured_gps_lat = ""
         self.captured_gps_lon = ""
+        self.lang = "en"
 
         self.logger = get_logger()
 
@@ -99,10 +319,45 @@ class TreesApp:
             self.logger.error("Failed to init DB: %s", ex, exc_info=True)
             raise
 
+    def t(self, key: str) -> str:
+        return TRANSLATIONS.get(self.lang, TRANSLATIONS["en"]).get(key, key)
+
+    def _font(self) -> str:
+        return "AlMaghrebi" if self.lang == "ar" else "Comfortaa"
+
+    def _apply_language(self):
+        self.page.rtl = self.lang == "ar"
+        font = self._font()
+        self.page.update()
+        self._rebuild_all_views()
+
+    def _rebuild_all_views(self):
+        self.setup_app_bar()
+        self.setup_navigation()
+        self.setup_list_view()
+        self.setup_add_form()
+        self.setup_edit_form()
+        self.setup_detail_view()
+        self.setup_settings_view()
+        self.setup_stats_view()
+        self.main_container.controls = [
+            self.list_container,
+            self.add_container,
+            self.edit_container,
+            self.detail_container,
+            self.settings_container,
+            self.stats_container,
+        ]
+        self.main_container.update()
+        self.show_list_view()
+
     def setup_ui(self):
         font_path = os.path.join(os.path.dirname(__file__), "assets", "fonts", "Comfortaa-Regular.ttf")
         if os.path.exists(font_path):
             self.page.fonts = {"Comfortaa": font_path}
+        ar_font_path = os.path.join(os.path.dirname(__file__), "assets", "fonts", "AlMaghrebi-Modern-Wahib.ttf")
+        if os.path.exists(ar_font_path):
+            self.page.fonts["AlMaghrebi"] = ar_font_path
 
         self.setup_app_bar()
         self.setup_navigation()
@@ -192,14 +447,14 @@ class TreesApp:
 
     def setup_app_bar(self):
         self.search_field = TextField(
-            hint_text="Search trees... (use | for AND)",
-            hint_style=TextStyle(color=Colors.GREY_500, font_family="Comfortaa"),
+            hint_text=self.t("search_hint"),
+            hint_style=TextStyle(color=Colors.GREY_500, font_family=self._font()),
             border=InputBorder.NONE,
             content_padding=Padding(10, 0, 10, 0),
             on_change=self.on_search_change,
             expand=True,
             text_size=16,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
         )
 
         self.search_clear_btn = IconButton(
@@ -258,9 +513,9 @@ class TreesApp:
     def setup_navigation(self):
         self.nav_bar = NavigationBar(
             destinations=[
-                NavigationBarDestination(icon=Icons.LIST_ALT, label="Trees"),
-                NavigationBarDestination(icon=Icons.ADD_CIRCLE, label="Add"),
-                NavigationBarDestination(icon=Icons.SETTINGS, label="Settings"),
+                NavigationBarDestination(icon=Icons.LIST_ALT, label=self.t("nav_trees")),
+                NavigationBarDestination(icon=Icons.ADD_CIRCLE, label=self.t("nav_add")),
+                NavigationBarDestination(icon=Icons.SETTINGS, label=self.t("nav_settings")),
             ],
             selected_index=0,
             on_change=self.on_nav_change,
@@ -276,8 +531,8 @@ class TreesApp:
         self.empty_state = Container(
             content=Column([
                 Icon(Icons.PARK, size=80, color=Colors.GREY_300),
-                Text("No trees found", size=18, color=Colors.GREY_500, font_family="Comfortaa"),
-                Text("Tap + to add your first tree", size=14, color=Colors.GREY_400, font_family="Comfortaa"),
+                Text(self.t("no_trees_found"), size=18, color=Colors.GREY_500, font_family=self._font()),
+                Text(self.t("tap_to_add"), size=14, color=Colors.GREY_400, font_family=self._font()),
             ], horizontal_alignment=CrossAxisAlignment.CENTER, spacing=10),
             alignment=alignment.Alignment(0, 0),
             expand=True,
@@ -285,7 +540,7 @@ class TreesApp:
         )
         self.pagination_controls = Row([
             IconButton(icon=Icons.CHEVRON_LEFT, on_click=lambda _: self.prev_page(), disabled=True),
-            Text("Page 1 / 1", size=14, font_family="Comfortaa"),
+            Text(self.t("page") + "1 / 1", size=14, font_family=self._font()),
             IconButton(icon=Icons.CHEVRON_RIGHT, on_click=lambda _: self.next_page(), disabled=True),
         ], alignment=MainAxisAlignment.CENTER)
 
@@ -303,8 +558,8 @@ class TreesApp:
                 Container(height=180),
                 ProgressRing(width=56, height=56, color=Colors.GREEN_700),
                 Container(height=20),
-                Text("Loading trees...", size=18, font_family="Comfortaa", color=Colors.GREEN_700, weight=FontWeight.BOLD),
-                Text("Please wait while we gather your data", size=13, font_family="Comfortaa", color=Colors.GREY_500),
+                Text(self.t("loading"), size=18, font_family=self._font(), color=Colors.GREEN_700, weight=FontWeight.BOLD),
+                Text(self.t("loading_sub"), size=13, font_family=self._font(), color=Colors.GREY_500),
             ], horizontal_alignment=CrossAxisAlignment.CENTER, spacing=4),
             alignment=alignment.Alignment(0, 0),
             bgcolor=Colors.with_opacity(0.92, Colors.WHITE),
@@ -384,7 +639,7 @@ class TreesApp:
             content=Container(
                 content=Column([
                     Row([
-                        Text("Location", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Text(self.t("location"), size=16, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                         self.location_coords_badge,
                         self.location_gps_btn,
                         self.location_tree_code,
@@ -445,7 +700,7 @@ class TreesApp:
         self.add_photo_placeholder = Container(
             content=Column([
                 Icon(Icons.CAMERA_ALT, size=64, color=Colors.GREY_400),
-                Text("No photo captured", size=14, color=Colors.GREY_500, font_family="Comfortaa"),
+                Text(self.t("no_photo"), size=14, color=Colors.GREY_500, font_family=self._font()),
             ], horizontal_alignment=CrossAxisAlignment.CENTER, spacing=10),
             width=320,
             height=240,
@@ -454,7 +709,7 @@ class TreesApp:
             alignment=alignment.Alignment(0, 0),
         )
         self.add_take_photo_btn = FilledButton(
-            content=Row([Icon(Icons.CAMERA_ALT), Text("Take Photo")], spacing=8, alignment=MainAxisAlignment.CENTER),
+            content=Row([Icon(Icons.CAMERA_ALT), Text(self.t("take_photo"))], spacing=8, alignment=MainAxisAlignment.CENTER),
             on_click=self._take_photo,
             style=ButtonStyle(color=Colors.WHITE, bgcolor=Colors.GREEN_700, padding=Padding(16, 12, 16, 12)),
         )
@@ -464,7 +719,7 @@ class TreesApp:
             content=Container(
                 content=Column([
                     Row([
-                        Text("Photo", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Text(self.t("photo"), size=16, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                     ], alignment=MainAxisAlignment.START),
                     Divider(height=12),
                     self.add_photo_placeholder,
@@ -498,7 +753,7 @@ class TreesApp:
             margin=Margin(0, 0, 0, 12),
         )
         self.add_save_btn = Button(
-            content=Text("Save Tree"),
+            content=Text(self.t("save_tree")),
             icon=Icons.SAVE,
             on_click=self.save_new_tree,
             style=ButtonStyle(
@@ -508,7 +763,7 @@ class TreesApp:
             ),
         )
         self.add_save_next_btn = Button(
-            content=Text("Save & Next"),
+            content=Text(self.t("save_next")),
             icon=Icons.SKIP_NEXT,
             on_click=self.save_new_tree_next,
             style=ButtonStyle(
@@ -522,7 +777,7 @@ class TreesApp:
             content=ListView([
                 Container(
                     content=Column([
-                        Row([Text("Add New Tree", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700)], spacing=8, vertical_alignment=CrossAxisAlignment.CENTER),
+                        Row([Text(self.t("add_new_tree"), size=24, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700)], spacing=8, vertical_alignment=CrossAxisAlignment.CENTER),
                         Divider(height=12),
                         self.photos_card,
                         Divider(height=8),
@@ -605,7 +860,7 @@ class TreesApp:
             content=ListView([
                 Container(
                     content=Column([
-                        Text("Edit Tree", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Text(self.t("edit_tree"), size=24, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                         Divider(height=12),
         Card(
             content=Container(
@@ -689,7 +944,7 @@ class TreesApp:
                 Container(
                     content=Column([
                         Row([
-                            Text("Tree Details", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700, expand=True),
+                            Text(self.t("tree_details"), size=24, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700, expand=True),
                         ]),
                         Divider(height=10),
                         Card(
@@ -774,16 +1029,38 @@ class TreesApp:
             self.load_trees()
 
     def setup_settings_view(self):
+        self.lang_switch = ft.Switch(
+            value=(self.lang == "ar"),
+            on_change=self._on_lang_change,
+            active_color=Colors.GREEN_700,
+        )
         self.settings_container = Container(
             content=Column([
-                Text("Settings", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                Text(self.t("settings"), size=24, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                 Divider(height=2, color=Colors.GREEN_200),
                 Container(height=10),
                 Card(
+                    content=Container(
+                        content=Row([
+                            Icon(Icons.LANGUAGE, color=Colors.GREEN_700),
+                            Column([
+                                Text(self.t("language"), font_family=self._font(), weight=FontWeight.BOLD),
+                                Text(self.t("language_subtitle"), font_family=self._font(), size=12, color=Colors.GREY_600),
+                            ], spacing=2, expand=True),
+                            Text("EN", size=12, font_family="Comfortaa", weight=FontWeight.BOLD, color=Colors.GREY_600),
+                            self.lang_switch,
+                            Text("ع", size=14, font_family="AlMaghrebi", weight=FontWeight.BOLD, color=Colors.GREY_600),
+                        ], spacing=8, vertical_alignment=CrossAxisAlignment.CENTER),
+                        padding=Padding(16, 8, 16, 8),
+                    ),
+                    elevation=2,
+                ),
+                Container(height=5),
+                Card(
                     content=ListTile(
                         leading=Icon(Icons.HELP, color=Colors.GREEN_700),
-                        title=Text("Help", font_family="Comfortaa", weight=FontWeight.BOLD),
-                        subtitle=Text("Learn how to use the app", font_family="Comfortaa"),
+                        title=Text(self.t("help"), font_family=self._font(), weight=FontWeight.BOLD),
+                        subtitle=Text(self.t("help_subtitle"), font_family=self._font()),
                         on_click=self.show_help,
                     ),
                     elevation=2,
@@ -792,8 +1069,8 @@ class TreesApp:
                 Card(
                     content=ListTile(
                         leading=Icon(Icons.INFO, color=Colors.GREEN_700),
-                        title=Text("About", font_family="Comfortaa", weight=FontWeight.BOLD),
-                        subtitle=Text("Farm Tree Manager v" + version.version, font_family="Comfortaa"),
+                        title=Text(self.t("about"), font_family=self._font(), weight=FontWeight.BOLD),
+                        subtitle=Text(self.t("about_subtitle") + version.version, font_family=self._font()),
                         on_click=self.show_about,
                     ),
                     elevation=2,
@@ -802,8 +1079,8 @@ class TreesApp:
                 Card(
                     content=ListTile(
                         leading=Icon(Icons.BUG_REPORT, color=Colors.GREEN_700),
-                        title=Text("View Logs", font_family="Comfortaa", weight=FontWeight.BOLD),
-                        subtitle=Text("Check app logs for troubleshooting", font_family="Comfortaa"),
+                        title=Text(self.t("view_logs"), font_family=self._font(), weight=FontWeight.BOLD),
+                        subtitle=Text(self.t("view_logs_subtitle"), font_family=self._font()),
                         on_click=self.show_logs,
                     ),
                     elevation=2,
@@ -814,13 +1091,17 @@ class TreesApp:
             visible=False,
         )
 
+    def _on_lang_change(self, e):
+        self.lang = "ar" if e.control.value else "en"
+        self._apply_language()
+
     def setup_stats_view(self):
-        self.stats_total_label = Text("Total Trees: 0", size=18, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700)
-        self.stats_searched_label = Text("Searched Trees: 0", size=18, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.BLUE_700)
+        self.stats_total_label = Text(self.t("total_trees") + "0", size=18, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700)
+        self.stats_searched_label = Text(self.t("searched_trees") + "0", size=18, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.BLUE_700)
         self.stats_heatmap_grid = Column(spacing=2)
         self.stats_heatmap_legend = Row(spacing=0)
         self.stats_heatmap_empty = Container(
-            content=Text("No Tree Available", size=16, color=Colors.GREY_500, font_family="Comfortaa"),
+            content=Text(self.t("no_tree_available"), size=16, color=Colors.GREY_500, font_family=self._font()),
             height=120, alignment=alignment.Alignment(0, 0), visible=False,
         )
         self.stats_bar_chart = BarChart(
@@ -837,7 +1118,7 @@ class TreesApp:
         )
         self.stats_bar_legend = Row(spacing=0, wrap=True)
         self.stats_bar_empty = Container(
-            content=Text("No Tree Available", size=16, color=Colors.GREY_500, font_family="Comfortaa"),
+            content=Text(self.t("no_tree_available"), size=16, color=Colors.GREY_500, font_family=self._font()),
             height=120, alignment=alignment.Alignment(0, 0), visible=False,
         )
 
@@ -846,7 +1127,7 @@ class TreesApp:
                 Container(
                     content=Column([
                         Row([
-                            Text("Statistics", size=24, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700, expand=True),
+                            Text(self.t("statistics"), size=24, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700, expand=True),
                         ]),
                         Divider(height=2, color=Colors.GREEN_200),
                         Container(height=20),
@@ -854,7 +1135,7 @@ class TreesApp:
                         Container(height=10),
                         self.stats_searched_label,
                         Container(height=20),
-                        Text("Tree Density Heatmap", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Text(self.t("heatmap_title"), size=16, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                         Divider(height=2),
                         Container(
                             content=self.stats_heatmap_grid,
@@ -867,7 +1148,7 @@ class TreesApp:
                         Container(height=10),
                         self.stats_heatmap_legend,
                         Container(height=30),
-                        Text("Trees per Sector", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Text(self.t("barchart_title"), size=16, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                         Divider(height=2),
                         self.stats_bar_chart,
                         self.stats_bar_empty,
@@ -1056,16 +1337,16 @@ class TreesApp:
             self.page.update()
 
         dlg = AlertDialog(
-            title=Text("Help", font_family="Comfortaa", weight=FontWeight.BOLD),
+            title=Text(self.t("help_title"), font_family=self._font(), weight=FontWeight.BOLD),
             content=Column([
-                Text("• Tap + to add a new tree.", font_family="Comfortaa"),
-                Text("• Tap a tree card to view its details.", font_family="Comfortaa"),
-                Text("• Long-press a tree for quick actions.", font_family="Comfortaa"),
-                Text("• Use the search bar to find trees.", font_family="Comfortaa"),
-                Text("• Track visits and update tree status.", font_family="Comfortaa"),
-                Text("• Photos and notes can be added per visit.", font_family="Comfortaa"),
+                Text(self.t("help_text_1"), font_family=self._font()),
+                Text(self.t("help_text_2"), font_family=self._font()),
+                Text(self.t("help_text_3"), font_family=self._font()),
+                Text(self.t("help_text_4"), font_family=self._font()),
+                Text(self.t("help_text_5"), font_family=self._font()),
+                Text(self.t("help_text_6"), font_family=self._font()),
             ], spacing=8, tight=True),
-            actions=[TextButton("Close", on_click=close)],
+            actions=[TextButton(self.t("close"), on_click=close)],
         )
         self.page.dialog = dlg
         dlg.open = True
@@ -1077,14 +1358,14 @@ class TreesApp:
             self.page.update()
 
         dlg = AlertDialog(
-            title=Text("About", font_family="Comfortaa", weight=FontWeight.BOLD),
+            title=Text(self.t("about_title"), font_family=self._font(), weight=FontWeight.BOLD),
             content=Column([
-                Text("Farm Tree Manager", size=18, weight=FontWeight.BOLD, font_family="Comfortaa"),
-                Text("Version " + version.version, font_family="Comfortaa"),
+                Text(self.t("app_title"), size=18, weight=FontWeight.BOLD, font_family=self._font()),
+                Text(self.t("about_subtitle") + version.version, font_family=self._font()),
                 Divider(),
-                Text("A farm tree management app for tracking tree health, visits, and maintenance.", font_family="Comfortaa"),
+                Text(self.t("about_desc"), font_family=self._font()),
             ], spacing=8, tight=True),
-            actions=[TextButton("Close", on_click=close)],
+            actions=[TextButton(self.t("close"), on_click=close)],
         )
         self.page.dialog = dlg
         dlg.open = True
@@ -1107,7 +1388,7 @@ class TreesApp:
             scroll=ScrollMode.AUTO, spacing=2,
         )
         dlg = AlertDialog(
-            title=Text("Logs", font_family="Comfortaa", weight=FontWeight.BOLD),
+            title=Text(self.t("logs_title"), font_family=self._font(), weight=FontWeight.BOLD),
             content=Column([Text("App Logs", size=16, weight=FontWeight.BOLD), Divider(), content], width=360, height=500),
             actions=[
                 TextButton("Refresh", on_click=refresh),
@@ -1365,16 +1646,16 @@ class TreesApp:
             self.show_history_bottom_sheet(tree["id"])
 
         items = Column([
-            ListTile(leading=Icon(Icons.EDIT), title=Text("Edit Tree", font_family="Comfortaa"), on_click=make_handler(on_edit)),
-            ListTile(leading=Icon(Icons.FLAG), title=Text("Quick Status Change", font_family="Comfortaa"), on_click=make_handler(lambda: self.show_status_picker(tree))),
-            ListTile(leading=Icon(Icons.HISTORY), title=Text("View History", font_family="Comfortaa"), on_click=make_handler(on_history)),
-            ListTile(leading=Icon(Icons.DELETE), title=Text("Delete Tree", font_family="Comfortaa"), on_click=make_handler(on_delete)),
+            ListTile(leading=Icon(Icons.EDIT), title=Text(self.t("edit_action"), font_family=self._font()), on_click=make_handler(on_edit)),
+            ListTile(leading=Icon(Icons.FLAG), title=Text(self.t("quick_status"), font_family=self._font()), on_click=make_handler(lambda: self.show_status_picker(tree))),
+            ListTile(leading=Icon(Icons.HISTORY), title=Text(self.t("view_history"), font_family=self._font()), on_click=make_handler(on_history)),
+            ListTile(leading=Icon(Icons.DELETE), title=Text(self.t("delete_action"), font_family=self._font()), on_click=make_handler(on_delete)),
         ], spacing=0)
 
         bs = BottomSheet(
             content=Container(
                 content=Column([
-                    Text("Actions", size=18, weight=FontWeight.BOLD, font_family="Comfortaa"),
+                    Text(self.t("actions"), size=18, weight=FontWeight.BOLD, font_family=self._font()),
                     Divider(),
                     items,
                 ], spacing=8, tight=True),
@@ -1408,7 +1689,7 @@ class TreesApp:
         bs = BottomSheet(
             content=Container(
                 content=Column([
-                    Text("Change Status", size=18, weight=FontWeight.BOLD, font_family="Comfortaa"),
+                    Text(self.t("change_status"), size=18, weight=FontWeight.BOLD, font_family=self._font()),
                     Divider(),
                     ListView(items, spacing=4, shrink_wrap=True),
                 ], spacing=8, tight=True),
@@ -1430,7 +1711,7 @@ class TreesApp:
         bs = BottomSheet(
             content=Container(
                 content=Column([
-                    Text("Visit History", size=18, weight=FontWeight.BOLD, font_family="Comfortaa"),
+                    Text(self.t("visit_history"), size=18, weight=FontWeight.BOLD, font_family=self._font()),
                     Divider(),
                     ListView(items, spacing=8, shrink_wrap=True, expand=True),
                 ], spacing=8, tight=True),
@@ -1535,11 +1816,11 @@ class TreesApp:
             self.page.update()
 
         dlg = AlertDialog(
-            title=Text("Delete Tree", font_family="Comfortaa"),
-            content=Text("Are you sure you want to delete this tree and all its visits?", font_family="Comfortaa"),
+            title=Text(self.t("delete_title"), font_family=self._font()),
+            content=Text(self.t("confirm_delete"), font_family=self._font()),
             actions=[
-                TextButton("Cancel", on_click=cancel),
-                TextButton("Delete", on_click=confirm, style=ButtonStyle(color=Colors.RED)),
+                TextButton(self.t("cancel"), on_click=cancel),
+                TextButton(self.t("delete"), on_click=confirm, style=ButtonStyle(color=Colors.RED)),
             ],
         )
         self.page.dialog = dlg
