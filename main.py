@@ -2,7 +2,6 @@ import os
 import re
 import asyncio
 import shutil
-import sys
 from datetime import datetime
 import flet as ft
 import logging
@@ -18,7 +17,7 @@ from flet import (
     PopupMenuItem, BottomSheet, ProgressRing,
     FilledButton, BoxFit, BottomAppBar, SafeArea,
 )
-from flet_camera import Camera, CameraLensDirection, ResolutionPreset
+from flet_camera import Camera
 from flet_charts import BarChart, BarChartGroup, BarChartRod, BarChartTooltip, ChartAxis, ChartAxisLabel
 from flet_geolocator import Geolocator, GeolocatorConfiguration, GeolocatorPositionAccuracy
 from app.config import TREE_KINDS, TREE_VARIETIES, STATUS_LOOKUP
@@ -1462,7 +1461,7 @@ class TreesApp:
             self.show_snack("Taking photo...", Colors.BLUE)
             await self.camera.initialize()
             img_bytes = await self.camera.take_picture()
-            import tempfile, uuid as _uuid
+            import tempfile
             tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
             tmp.write(img_bytes)
             tmp.close()

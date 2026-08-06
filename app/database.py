@@ -255,21 +255,3 @@ def copy_photo_to_storage(src_path: str) -> str:
     except Exception as ex:
         logger.error("Failed to copy photo %s -> %s: %s", src_path, dst_path, ex)
     return dst_path
-
-
-def get_gps_coordinates(callback):
-    import threading
-
-    def get_location():
-        try:
-            import geocoder
-            g = geocoder.ip("me")
-            if g.latlng:
-                callback(str(g.latlng[0]), str(g.latlng[1]))
-
-        except ImportError:
-            logger.debug("geocoder not installed, GPS unavailable")
-        except Exception as ex:
-            logger.warning("GPS geocoding failed: %s", ex)
-
-    threading.Thread(target=get_location, daemon=True).start()
