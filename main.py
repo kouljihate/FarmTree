@@ -394,28 +394,6 @@ class TreesApp:
         dlg.open = True
         self.page.update()
 
-    def safe_handler(self, func):
-        import uuid as _uuid
-        import inspect
-        import asyncio
-
-        if inspect.iscoroutinefunction(func):
-            async def async_wrapper(e):
-                try:
-                    return await func(e)
-                except Exception as ex:
-                    error_id = _uuid.uuid4().hex[:8].upper()
-                    self.show_error_popup(error_id, str(ex))
-            return async_wrapper
-        else:
-            def sync_wrapper(e):
-                try:
-                    return func(e)
-                except Exception as ex:
-                    error_id = _uuid.uuid4().hex[:8].upper()
-                    self.show_error_popup(error_id, str(ex))
-            return sync_wrapper
-
     def confirm_delete_current(self):
         def confirm(e):
             self.delete_current_tree()
