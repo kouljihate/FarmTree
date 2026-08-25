@@ -23,8 +23,8 @@ os.environ["PYTHONIOENCODING"] = "utf-8"
 print("=" * 70)
 print("APK BUILD FOR ANDROID 15 (API 35) - FARM TREE MANAGER")
 print("=" * 70)
-print(f"Project: Farm Tree Manager v1.15.0")
-print(f"Build Number: 25")
+print(f"Project: Farm Tree Manager v1.16.0")
+print(f"Build Number: 26")
 print(f"Target Android: API 35 (Android 15)")
 print(f"Architecture: arm64-v8a")
 print(f"JAVA_HOME: {_JAVA_HOME}")
@@ -56,8 +56,8 @@ build_cmd = [
     "--android-signing-key-store-password", "FarmTree2026!",
     "--android-signing-key-password", "FarmTree2026!",
     "--android-signing-key-alias", "farmtree",
-    "--build-number", "25",
-    "--build-version", "1.15.0",
+    "--build-number", "26",
+    "--build-version", "1.16.0",
     "--arch", "arm64-v8a",
     "--split-per-abi",
     "--cleanup-app",
@@ -115,8 +115,8 @@ try:
         print(f"Target Android Version: API 35 (Android 15)")
         print(f"Architecture: ARM64-v8a (64-bit)")
         print(f"Application ID: kouljihate.farmtree")
-        print(f"Version Code: 25")
-        print(f"Version Name: 1.15.0")
+        print(f"Version Code: 26")
+        print(f"Version Name: 1.16.0")
         print(f"Signing: farmtree keystore")
         print(f"Min SDK: 24")
         print(f"Target SDK: 36")

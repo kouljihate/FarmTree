@@ -39,8 +39,8 @@ class TreeEditView:
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
             expand=True,
+            on_select=self.on_edit_kind_change,
         )
-        self.edit_kind.on_change = self.on_edit_kind_change
         self.edit_variety = Dropdown(
             label="Variety",
             hint_text="Select variety",

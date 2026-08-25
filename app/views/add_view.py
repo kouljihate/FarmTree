@@ -111,8 +111,8 @@ class TreeAddView:
             options=KIND_DROPDOWN_ITEMS,
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
+            on_select=self.on_kind_change,
         )
-        self.add_kind.on_change = self.on_kind_change
         self.add_variety = Dropdown(
             label="Variety",
             hint_text="Select variety",
@@ -428,9 +428,9 @@ class TreeAddView:
 
         async def _get_position():
             try:
-                from flet_geolocator import GeolocatorConfiguration, GeolocatorPositionAccuracy
+                from flet_geolocator import GeolocatorConfiguration, GeolocatorPositionAccuracy, GeolocatorPermissionStatus
                 perm = await self.app.geolocator.request_permission()
-                if not perm:
+                if perm in (GeolocatorPermissionStatus.DENIED, GeolocatorPermissionStatus.DENIED_FOREVER):
                     self.app.show_snack("Location permission denied", Colors.RED)
                     return
                 pos = await self.app.geolocator.get_current_position(
