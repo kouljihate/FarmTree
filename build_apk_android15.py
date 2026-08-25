@@ -14,6 +14,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(".").resolve()
 KEYSTORE_PATH = PROJECT_ROOT / "keystore.jks"
 
+# Read version from version.py
+_version_file = PROJECT_ROOT / "version.py"
+_ns = {}
+exec(_version_file.read_text(), _ns)
+APP_VERSION = _ns["version"]
+
 # Correct JAVA_HOME for Gradle (JDK 17 required by AGP 8.x)
 _JAVA_HOME = r"C:\Users\koul\java\17.0.13+11"
 os.environ["JAVA_HOME"] = _JAVA_HOME
@@ -23,8 +29,8 @@ os.environ["PYTHONIOENCODING"] = "utf-8"
 print("=" * 70)
 print("APK BUILD FOR ANDROID 15 (API 35) - FARM TREE MANAGER")
 print("=" * 70)
-print(f"Project: Farm Tree Manager v1.17.2")
-print(f"Build Number: 29")
+print(f"Project: Farm Tree Manager v{APP_VERSION}")
+print(f"Build Number: 30")
 print(f"Target Android: API 35 (Android 15)")
 print(f"Architecture: arm64-v8a")
 print(f"JAVA_HOME: {_JAVA_HOME}")
@@ -56,8 +62,8 @@ build_cmd = [
     "--android-signing-key-store-password", "FarmTree2026!",
     "--android-signing-key-password", "FarmTree2026!",
     "--android-signing-key-alias", "farmtree",
-    "--build-number", "29",
-    "--build-version", "1.17.2",
+    "--build-number", "30",
+    "--build-version", APP_VERSION,
     "--arch", "arm64-v8a",
     "--split-per-abi",
     "--cleanup-app",
@@ -103,6 +109,13 @@ try:
 
     if apk_files:
         latest_apk = max(apk_files, key=lambda f: f.stat().st_mtime)
+        versioned_name = f"FarmTree-v{APP_VERSION}-arm64-v8a.apk"
+        versioned_path = latest_apk.parent / versioned_name
+        if latest_apk.name != versioned_name:
+            if versioned_path.exists():
+                versioned_path.unlink()
+            latest_apk.rename(versioned_path)
+            latest_apk = versioned_path
         print(f"\n" + "=" * 70)
         print("APK BUILD SUCCESSFUL")
         print("=" * 70)
@@ -115,8 +128,8 @@ try:
         print(f"Target Android Version: API 35 (Android 15)")
         print(f"Architecture: ARM64-v8a (64-bit)")
         print(f"Application ID: kouljihate.farmtree")
-        print(f"Version Code: 29")
-        print(f"Version Name: 1.17.2")
+        print(f"Version Code: 30")
+        print(f"Version Name: {APP_VERSION}")
         print(f"Signing: farmtree keystore")
         print(f"Min SDK: 24")
         print(f"Target SDK: 36")
