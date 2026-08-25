@@ -7,7 +7,7 @@ from flet import (
     NavigationBar, NavigationBarDestination, TextStyle,
     Padding, FontWeight, CrossAxisAlignment, MainAxisAlignment,
     PopupMenuItem, BottomSheet, ListView, AlertDialog, TextButton,
-    ListTile,
+    ListTile, alignment, ProgressRing, SizedBox, LinearGradient,
 )
 from app.config import STATUS_LOOKUP
 from app.database import init_db, delete_tree, get_tree, update_tree_status, invalidate_cache
@@ -117,7 +117,59 @@ class TreesApp:
         self.settings_view.setup()
         self.stats_view.setup()
 
+        self.splash_container = Container(
+            content=Column([
+                Container(
+                    content=Icon(Icons.PARK, size=80, color=Colors.WHITE),
+                    bgcolor=Colors.GREEN_800,
+                    width=120,
+                    height=120,
+                    border_radius=BorderRadius(60, 60, 60, 60),
+                    alignment=alignment.Alignment(0, 0),
+                ),
+                Text(
+                    "Farm Tree Manager",
+                    size=26,
+                    weight=FontWeight.BOLD,
+                    color=Colors.WHITE,
+                    font_family="Comfortaa",
+                ),
+                Text(
+                    "Managing your orchards with care",
+                    size=14,
+                    color=Colors.GREEN_100,
+                    font_family="Comfortaa",
+                ),
+                SizedBox(height=20),
+                ProgressRing(
+                    width=36,
+                    height=36,
+                    stroke_width=4,
+                    color=Colors.WHITE,
+                ),
+                SizedBox(height=10),
+                Text(
+                    "Loading...",
+                    size=12,
+                    color=Colors.GREEN_200,
+                    font_family="Comfortaa",
+                ),
+            ],
+                horizontal_alignment=CrossAxisAlignment.CENTER,
+                alignment=MainAxisAlignment.CENTER,
+                spacing=12,
+            ),
+            gradient=LinearGradient(
+                begin=alignment.Alignment(0, -1),
+                end=alignment.Alignment(0, 1),
+                colors=[Colors.GREEN_900, Colors.GREEN_700, Colors.GREEN_600],
+            ),
+            expand=True,
+            alignment=alignment.Alignment(0, 0),
+        )
+
         self.main_container = Stack([
+            self.splash_container,
             self.list_view.container,
             self.add_view.container,
             self.edit_view.container,
@@ -133,7 +185,21 @@ class TreesApp:
             maintain_bottom_view_padding=True,
         )
         self.page.add(safe_main)
-        self.list_view.show()
+        self.splash_container.visible = True
+        for c in (self.list_view.container, self.add_view.container, self.edit_view.container,
+                  self.detail_view.container, self.settings_view.container, self.stats_view.container):
+            c.visible = False
+        self.page.update()
+
+        import asyncio
+        async def _hide_splash():
+            await asyncio.sleep(2)
+            self.splash_container.visible = False
+            self.list_view.container.visible = True
+            self.list_view.show()
+            self.page.update()
+
+        self.page.run_task(_hide_splash)
 
     def setup_app_bar(self):
         self.search_field = TextField(
