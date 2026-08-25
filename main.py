@@ -7,7 +7,7 @@ from flet import (
     NavigationBar, NavigationBarDestination, TextStyle,
     Padding, FontWeight, CrossAxisAlignment, MainAxisAlignment,
     PopupMenuItem, BottomSheet, ListView, AlertDialog, TextButton,
-    ListTile, alignment, ProgressRing, SizedBox, LinearGradient,
+    ListTile, alignment, ProgressRing, LinearGradient,
 )
 from app.config import STATUS_LOOKUP
 from app.database import init_db, delete_tree, get_tree, update_tree_status, invalidate_cache
@@ -140,14 +140,14 @@ class TreesApp:
                     color=Colors.GREEN_100,
                     font_family="Comfortaa",
                 ),
-                SizedBox(height=20),
+                Container(height=20),
                 ProgressRing(
                     width=36,
                     height=36,
                     stroke_width=4,
                     color=Colors.WHITE,
                 ),
-                SizedBox(height=10),
+                Container(height=10),
                 Text(
                     "Loading...",
                     size=12,
