@@ -368,7 +368,6 @@ class TreesApp:
         self.page.update()
 
     def show_error_popup(self, error_id: str, description: str):
-        import traceback as _tb
         self.logger.error("Error %s: %s", error_id, description)
 
         def close_dlg(e):
@@ -397,13 +396,25 @@ class TreesApp:
 
     def safe_handler(self, func):
         import uuid as _uuid
-        def wrapper(e):
-            try:
-                return func(e)
-            except Exception as ex:
-                error_id = _uuid.uuid4().hex[:8].upper()
-                self.show_error_popup(error_id, str(ex))
-        return wrapper
+        import inspect
+        import asyncio
+
+        if inspect.iscoroutinefunction(func):
+            async def async_wrapper(e):
+                try:
+                    return await func(e)
+                except Exception as ex:
+                    error_id = _uuid.uuid4().hex[:8].upper()
+                    self.show_error_popup(error_id, str(ex))
+            return async_wrapper
+        else:
+            def sync_wrapper(e):
+                try:
+                    return func(e)
+                except Exception as ex:
+                    error_id = _uuid.uuid4().hex[:8].upper()
+                    self.show_error_popup(error_id, str(ex))
+            return sync_wrapper
 
     def confirm_delete_current(self):
         def confirm(e):

@@ -10,6 +10,11 @@ import os
 import shutil
 from pathlib import Path
 
+# Force UTF-8 output on Windows
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # Configuration
 PROJECT_ROOT = Path(".").resolve()
 KEYSTORE_PATH = PROJECT_ROOT / "keystore.jks"
@@ -90,13 +95,13 @@ try:
     print("\n" + "=" * 70)
     print("BUILD OUTPUT")
     print("=" * 70)
-    print(result.stdout)
+    print(result.stdout.encode("utf-8", errors="replace").decode("utf-8"))
 
     if result.stderr:
         print("\n" + "=" * 70)
         print("BUILD ERRORS")
         print("=" * 70)
-        print(result.stderr)
+        print(result.stderr.encode("utf-8", errors="replace").decode("utf-8"))
 
     print(f"\nExit code: {result.returncode}")
 

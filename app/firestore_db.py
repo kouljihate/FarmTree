@@ -2,8 +2,6 @@ import json
 import os
 import logging
 import urllib.request
-import urllib.parse
-import uuid
 from datetime import datetime
 
 logger = logging.getLogger("farmtree")
@@ -28,11 +26,15 @@ def _load_config():
         return False
 
 
-def _firestore_url(collection: str, doc_id: str = None) -> str:
+COLLECTION = "Trees"
+
+
+def _firestore_url(collection: str = None, doc_id: str = None) -> str:
+    col = collection or COLLECTION
     base = f"https://firestore.googleapis.com/v1/projects/{_project_id}/databases/(default)/documents"
     if doc_id:
-        return f"{base}/{collection}/{doc_id}?key={_api_key}"
-    return f"{base}/{collection}?key={_api_key}"
+        return f"{base}/{col}/{doc_id}?key={_api_key}"
+    return f"{base}/{col}?key={_api_key}"
 
 
 def _firestore_request(method: str, url: str, data: dict = None) -> dict | None:
@@ -81,7 +83,12 @@ def _to_firestore_value(v):
     if isinstance(v, list):
         return {"arrayValue": {"values": [_to_firestore_value(item) for item in v]}}
     if isinstance(v, dict):
-        return {"mapValue": {"fields": _to_firestore_doc(v)}}
+        fields = {}
+        for k, v2 in v.items():
+            if v2 is None:
+                continue
+            fields[k] = _to_firestore_value(v2)
+        return {"mapValue": {"fields": fields}}
     return {"stringValue": str(v)}
 
 
@@ -132,14 +139,26 @@ def is_available() -> bool:
 def check_tree_code_unique(tree_code: str, exclude_id: str = None) -> bool:
     if not _load_config():
         return True
-    encoded = urllib.parse.quote(tree_code)
-    url = _firestore_url("trees") + f"&where.fields.tree_code.stringValue={encoded}"
-    result = _firestore_request("GET", url)
+    base = f"https://firestore.googleapis.com/v1/projects/{_project_id}/databases/(default)/documents:runQuery?key={_api_key}"
+    query = {
+        "structuredQuery": {
+            "from": [{"collectionId": "Trees"}],
+            "where": {
+                "fieldFilter": {
+                    "field": {"fieldPath": "tree_code"},
+                    "op": "EQUAL",
+                    "value": {"stringValue": tree_code},
+                }
+            },
+            "limit": 1,
+        }
+    }
+    result = _firestore_request("POST", base, query)
     if result is None:
         return True
-    docs = result.get("documents", [])
+    docs = [d for d in result if "document" in d]
     if exclude_id:
-        docs = [d for d in docs if d.get("name", "").split("/")[-1] != exclude_id]
+        docs = [d for d in docs if d["document"].get("name", "").split("/")[-1] != exclude_id]
     return len(docs) == 0
 
 
@@ -157,9 +176,9 @@ def insert_tree_firestore(
         return None
     if not check_tree_code_unique(tree_code):
         raise ValueError(f"Tree code '{tree_code}' already exists")
-    doc_id = uuid.uuid4().hex[:20]
+    now = datetime.now().strftime("%Y/%m/%d %H:%M")
     visit = {
-        "visit_dt": datetime.now().strftime("%Y/%m/%d %H:%M"),
+        "visit_dt": now,
         "status": status,
         "notes": notes,
         "photos": photos or [],
@@ -170,11 +189,17 @@ def insert_tree_firestore(
         "variety": variety,
         "latitude": latitude,
         "longitude": longitude,
+        "created_at": now,
+        "updated_at": now,
+        "last_status": status,
+        "last_visit_dt": now,
         "visits": [visit],
     }
-    url = _firestore_url("trees", doc_id)
-    result = _firestore_request("PUT", url, _to_firestore_doc(data))
+    url = _firestore_url()
+    result = _firestore_request("POST", url, _to_firestore_doc(data))
     if result:
+        name = result.get("name", "")
+        doc_id = name.split("/")[-1] if "/" in name else name
         logger.info("Inserted tree %s to Firestore", doc_id)
         return doc_id
     return None
@@ -183,7 +208,7 @@ def insert_tree_firestore(
 def get_tree_firestore(doc_id: str) -> dict | None:
     if not _load_config():
         return None
-    url = _firestore_url("trees", doc_id)
+    url = _firestore_url(doc_id=doc_id)
     result = _firestore_request("GET", url)
     if result:
         return _from_firestore_doc(result)
@@ -193,7 +218,7 @@ def get_tree_firestore(doc_id: str) -> dict | None:
 def get_all_trees_firestore() -> list[dict]:
     if not _load_config():
         return []
-    url = _firestore_url("trees")
+    url = _firestore_url()
     result = _firestore_request("GET", url)
     if not result:
         return []
@@ -231,8 +256,9 @@ def update_tree_firestore(
         updates["longitude"] = longitude
     if updates:
         merged = {k: v for k, v in existing.items() if k not in ("id",) and not isinstance(v, (list, dict))}
+        merged["updated_at"] = datetime.now().strftime("%Y/%m/%d %H:%M")
         merged.update(updates)
-        url = _firestore_url("trees", doc_id)
+        url = _firestore_url(doc_id=doc_id)
         result = _firestore_request("PATCH", url, _to_firestore_doc(merged))
         return result is not None
     return True
@@ -244,16 +270,20 @@ def add_visit_firestore(doc_id: str, status: str, notes: str, photos: list[str] 
     existing = get_tree_firestore(doc_id)
     if not existing:
         return False
+    now = datetime.now().strftime("%Y/%m/%d %H:%M")
     visits = existing.get("visits", [])
     visits.append({
-        "visit_dt": datetime.now().strftime("%Y/%m/%d %H:%M"),
+        "visit_dt": now,
         "status": status,
         "notes": notes,
         "photos": photos or [],
     })
-    url = _firestore_url("trees", doc_id)
+    url = _firestore_url(doc_id=doc_id)
     data = {k: v for k, v in existing.items() if k != "id"}
     data["visits"] = visits
+    data["last_status"] = status
+    data["last_visit_dt"] = now
+    data["updated_at"] = now
     result = _firestore_request("PATCH", url, _to_firestore_doc(data))
     return result is not None
 
@@ -265,7 +295,7 @@ def update_tree_status_firestore(doc_id: str, status: str) -> bool:
 def delete_tree_firestore(doc_id: str) -> bool:
     if not _load_config():
         return False
-    url = _firestore_url("trees", doc_id)
+    url = _firestore_url(doc_id=doc_id)
     req = urllib.request.Request(url, method="DELETE")
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
