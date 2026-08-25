@@ -8,40 +8,43 @@ This is a **complete working application** with the following structure:
 
 ### Core Files
 
-#### `main.py` (~1,750 lines)
-- Single-file UI containing all views (list, add, edit, detail, settings, stats)
-- Implements tree management features including:
-  - Add/edit/delete trees with sector/zone/row/tree-number format
-  - GPS location capture via flet-geolocator
-  - Photo capture from camera via flet-camera
-  - Visit tracking with status and notes
-  - Real-time search and filtering
-  - Pagination for large datasets
-  - Status picker with color-coded badges
-  - Statistics with heatmap and bar chart (flet-charts)
+#### `main.py` (~457 lines)
+- App entry point, navigation, and view orchestration
+- GPS and camera service initialization (overlay-based for Camera)
+- Context menus, status picker, history bottom sheet
+- Desktop-only window sizing (Android/mobile unaffected)
 
-#### `app/config.py`
+#### `app/views/` - UI Views
+- `add_view.py` (~450 lines) - Add tree form with GPS, photo, and details
+- `edit_view.py` (~227 lines) - Edit tree and add visits with camera support
+- `detail_view.py` (~158 lines) - Tree detail display
+- `list_view.py` (~215 lines) - Tree list with pagination and search
+- `settings_view.py` (~163 lines) - Language switch, help, about, logs
+- `stats_view.py` (~246 lines) - Statistics: heatmap + bar chart
+- `components.py` (~255 lines) - Shared UI, TRANSLATIONS (en/ar), build_visit_card()
+
+#### `app/config.py` (109 lines)
 - `TREE_KINDS`: Cherry, Prunes, Nectarine, Peach, Citrus, Figue
 - `TREE_VARIETIES`: Detailed variety mappings for each kind
 - `TREE_STATUSES`: Color-coded status list with hex colors
 - `STATUS_LOOKUP`: Dictionary mapping status labels to colors
 
-#### `app/database.py`
+#### `app/database.py` (257 lines)
 - TinyDB CRUD operations using document-based storage
 - Functions for inserting, updating, searching, and paginating trees
-- GPS location support via flet-geolocator
 - Caching layer for performance
 
-#### `app/logger.py`
+#### `app/logger.py` (50 lines)
 - Rotating file logger with 5MB max size and 3 backup files
 - Logs at DEBUG level to `data/logs/app.log`
 
 ### Supporting Files
 
 - `assets/fonts/Comfortaa-Regular.ttf` - Typography font
+- `assets/fonts/AlMaghrebi-Modern-Wahib.ttf` - Arabic font
 - `data/trees.json` - TinyDB document store
 - `data/photos/` - Photo storage directory (gitignored)
-- `version.py` - Version 1.11.0
+- `version.py` - Version string
 
 ### Tests/
 
@@ -50,14 +53,14 @@ This is a **complete working application** with the following structure:
 
 ### Build Tools
 
-- `build_apk_android15.py` - Android APK build script for Android 15 (API 35)
+- `build_apk_android15.py` - Android APK build script (JDK 17, UTF-8)
 - `requirements.txt` - Dependencies
 
 ### Key Features
 
 - Tree management (add, edit, delete)
 - GPS location capture (flet-geolocator)
-- Photo capture from camera (flet-camera)
+- Photo capture from camera (flet-camera, overlay-based)
 - Visit tracking with status/notes
 - Real-time search and filtering
 - Efficient pagination
@@ -67,13 +70,15 @@ This is a **complete working application** with the following structure:
 - Cross-platform support (Android, iOS, Web, Desktop)
 - Performance optimized with caching
 - Comprehensive logging
+- Arabic/English language support
 
 ### Architecture
 
-- **Mobile-first**: Fixed window size 420x780
-- **Single-file UI**: All UI in `main.py`
-- **Modular structure**: Non-UI logic in `app/` modules
+- **Mobile-first**: Responsive layout (window sizing only on desktop)
+- **Modular views**: Each view in `app/views/` with setup/show pattern
+- **Camera as overlay**: Camera widget mounted in `page.overlay` (not services)
 - **View stacking**: Uses `Container.visible` for routing
+- **BottomSheet cleanup**: Old sheets removed before each new one
 - **TinyDB**: Lightweight JSON document store
 - **Responsive design** with Material Design 3
 
@@ -83,12 +88,9 @@ This is a **complete working application** with the following structure:
 - **flet-camera** - Camera integration
 - **flet-charts** - Charts (BarChart, PieChart, LineChart)
 - **flet-geolocator** - Device GPS location
-- **flet-web** - Web platform support
-- **flet-cli** - CLI build tools
-- **flet-desktop** - Desktop platform support
 - **TinyDB** - Document-based JSON storage
 - **Python 3.12+**
-- **Cross-platform** support
+- **Cross-platform** support (Android, iOS, Web, Desktop)
 
 ### Build Commands
 
@@ -99,10 +101,18 @@ python main.py
 # Web with hot reload
 flet run main.py --web
 
-# Android APK
+# Android APK (requires JDK 17)
 python build_apk_android15.py
 ```
+
+### Build Requirements
+
+- **JDK 17** (required by Gradle 8.14 / AGP 8.11.1)
+- **Android SDK** with platforms up to API 35+
+- **Flutter** 3.44+
+- **PYTHONUTF8=1** for Windows console emoji support
 
 ---
 
 **Status**: COMPLETE WORKING APPLICATION
+**Version**: 1.13.0

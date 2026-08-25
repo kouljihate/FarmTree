@@ -1,51 +1,55 @@
+import sqlite3
 import random
-import sys
-import os
+import requests
+import csv
+from io import StringIO
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+DB_PATH = "../farm_tree_manager.db"
 
-from app.database import init_db, insert_tree
-from app.config import TREE_KINDS, TREE_VARIETIES, STATUS_LOOKUP
-
-STATUSES = [s for s in STATUS_LOOKUP.keys() if s != "Dead"]
-
-def random_tree_code(index: int) -> str:
-    sector = random.randint(1, 10)
-    zone = random.randint(1, 8)
-    row = random.randint(1, 20)
-    tree_num = random.randint(1, 50)
-    return f"S{sector}Z{zone}R{row}T{tree_num}"
-
-def main():
-    count = 25000
-    init_db()
-
-    kinds = list(TREE_VARIETIES.keys())
-    all_varieties = {}
-    for k, v in TREE_VARIETIES.items():
-        all_varieties[k] = [var for var in v if var != "Other"]
-
-    for i in range(count):
-        kind = random.choice(kinds)
-        variety = random.choice(all_varieties[kind]) if all_varieties[kind] else "Other"
-        status = random.choice(STATUSES)
-        lat = round(random.uniform(32.0, 42.0), 6)
-        lng = round(random.uniform(-122.0, -114.0), 6)
-
-        insert_tree(
-            tree_code=random_tree_code(i),
-            kind=kind,
-            variety=variety,
-            latitude=str(lat),
-            longitude=str(lng),
-            status=status,
-            notes="",
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS trees (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            species TEXT NOT NULL,
+            age INTEGER,
+            health TEXT
         )
+    """)
+    conn.commit()
+    conn.close()
 
-        if (i + 1) % 5000 == 0:
-            print(f"Inserted {i + 1}/{count} trees...")
+def fetch_tree_species(limit=1000):
+    # Download GlobalTreeSearch CSV (example link)
+    url = "https://tools.bgci.org/global_tree_search.php/download"  
+    response = requests.get(url)
+    response.raise_for_status()
 
-    print(f"Done! {count} trees inserted.")
+    # Parse CSV
+    csv_file = StringIO(response.text)
+    reader = csv.reader(csv_file)
+    species_list = [row[0] for row in reader if row]  # species names in first column
+
+    # Pick random 1000 species
+    return random.sample(species_list, limit)
+
+def generate_trees():
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    health_options = ["Healthy", "Needs Water", "Diseased"]
+
+    for species in fetch_tree_species():
+        age = random.randint(1, 100)  # random age
+        health = random.choice(health_options)
+        cursor.execute("INSERT INTO trees (species, age, health) VALUES (?, ?, ?)",
+                       (species, age, health))
+
+    conn.commit()
+    conn.close()
+    print("✅ 1000 trees generated and saved to database.")
 
 if __name__ == "__main__":
-    main()
+    generate_trees()
