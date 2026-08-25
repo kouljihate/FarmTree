@@ -9,6 +9,21 @@ from tinydb.middlewares import CachingMiddleware
 
 logger = logging.getLogger("farmtree")
 
+try:
+    from app.firestore_db import (
+        is_available as fs_available,
+        insert_tree_firestore,
+        get_tree_firestore,
+        get_all_trees_firestore,
+        update_tree_firestore,
+        add_visit_firestore,
+        update_tree_status_firestore,
+        delete_tree_firestore,
+        search_trees_firestore,
+        check_tree_code_unique,
+    )
+except ImportError:
+    fs_available = lambda: False
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "trees.json")
 PHOTOS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "photos")
@@ -32,6 +47,23 @@ def get_db() -> TinyDB:
     return _db
 
 
+def _use_firestore() -> bool:
+    try:
+        return fs_available()
+    except Exception:
+        return False
+
+
+def check_tree_code_unique_local(tree_code: str, exclude_id: int = None) -> bool:
+    db = get_db()
+    table = db.table("trees")
+    for t in table.all():
+        if t.get("tree_code") == tree_code:
+            if exclude_id is None or t.doc_id != exclude_id:
+                return False
+    return True
+
+
 def insert_tree(
     tree_code: str,
     kind: str,
@@ -41,7 +73,14 @@ def insert_tree(
     status: str,
     notes: str,
     photos: list[str] | None = None,
-) -> int:
+) -> int | str:
+    if _use_firestore():
+        result = insert_tree_firestore(tree_code, kind, variety, latitude, longitude, status, notes, photos)
+        if result:
+            return result
+        raise ValueError("Failed to insert tree to Firestore")
+    if not check_tree_code_unique_local(tree_code):
+        raise ValueError(f"Tree code '{tree_code}' already exists")
     db = get_db()
     table = db.table("trees")
     visit = {
@@ -63,7 +102,10 @@ def insert_tree(
     return doc_id
 
 
-def add_visit(doc_id: int, status: str, notes: str, photos: list[str] | None = None) -> None:
+def add_visit(doc_id, status: str, notes: str, photos: list[str] | None = None) -> None:
+    if _use_firestore():
+        add_visit_firestore(str(doc_id), status, notes, photos)
+        return
     db = get_db()
     table = db.table("trees")
     tree = table.get(doc_id=doc_id)
@@ -81,13 +123,18 @@ def add_visit(doc_id: int, status: str, notes: str, photos: list[str] | None = N
 
 
 def update_tree(
-    doc_id: int,
+    doc_id,
     tree_code: str | None = None,
     kind: str | None = None,
     variety: str | None = None,
     latitude: str | None = None,
     longitude: str | None = None,
 ) -> None:
+    if _use_firestore():
+        update_tree_firestore(str(doc_id), tree_code, kind, variety, latitude, longitude)
+        return
+    if tree_code and not check_tree_code_unique_local(tree_code, exclude_id=doc_id):
+        raise ValueError(f"Tree code '{tree_code}' already exists")
     db = get_db()
     table = db.table("trees")
     updates = {}
@@ -106,7 +153,10 @@ def update_tree(
         invalidate_cache()
 
 
-def update_tree_status(doc_id: int, status: str) -> None:
+def update_tree_status(doc_id, status: str) -> None:
+    if _use_firestore():
+        update_tree_status_firestore(str(doc_id), status)
+        return
     db = get_db()
     table = db.table("trees")
     tree = table.get(doc_id=doc_id)
@@ -123,7 +173,10 @@ def update_tree_status(doc_id: int, status: str) -> None:
         invalidate_cache()
 
 
-def delete_tree(doc_id: int) -> list[str]:
+def delete_tree(doc_id) -> list[str]:
+    if _use_firestore():
+        delete_tree_firestore(str(doc_id))
+        return []
     db = get_db()
     table = db.table("trees")
     tree = table.get(doc_id=doc_id)
@@ -137,7 +190,9 @@ def delete_tree(doc_id: int) -> list[str]:
     return photo_paths
 
 
-def get_tree(doc_id: int) -> dict | None:
+def get_tree(doc_id) -> dict | None:
+    if _use_firestore():
+        return get_tree_firestore(str(doc_id))
     db = get_db()
     table = db.table("trees")
     tree = table.get(doc_id=doc_id)
@@ -148,6 +203,8 @@ def get_tree(doc_id: int) -> dict | None:
 
 
 def get_all_trees() -> list[dict]:
+    if _use_firestore():
+        return get_all_trees_firestore()
     db = get_db()
     table = db.table("trees")
     result = [_enrich_tree(t) for t in table.all()]
@@ -160,6 +217,8 @@ def search_trees(
     kind: str | None = None,
     status: str | None = None,
 ) -> list[dict]:
+    if _use_firestore():
+        return search_trees_firestore(query, kind, status)
     db = get_db()
     table = db.table("trees")
     terms = []

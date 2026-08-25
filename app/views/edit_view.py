@@ -28,51 +28,51 @@ class TreeEditView:
 
     def setup(self):
         self.edit_tree_code = TextField(
-            label="Tree Code *",
+            label=self.t("tree_code") + " *",
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             read_only=True,
         )
         self.edit_kind = Dropdown(
-            label="Kind *",
+            label=self.t("kind_required"),
             options=KIND_DROPDOWN_ITEMS,
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             expand=True,
             on_select=self.on_edit_kind_change,
         )
         self.edit_variety = Dropdown(
-            label="Variety",
-            hint_text="Select variety",
+            label=self.t("variety"),
+            hint_text=self.t("variety_hint"),
             options=[],
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             expand=True,
         )
         self.edit_visits_list = Column(spacing=8)
         self.add_visit_status = Dropdown(
-            label="Visit Status *",
+            label=self.t("visit_status"),
             options=STATUS_DROPDOWN_ITEMS,
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
         )
         self.add_visit_notes = TextField(
-            label="Visit Notes",
+            label=self.t("visit_notes"),
             border=InputBorder.OUTLINE,
             multiline=True,
             min_lines=2,
             max_lines=4,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
         )
         self.add_visit_photos_grid = GridView(expand=False, max_extent=100, child_aspect_ratio=1, spacing=8, run_spacing=8)
         self.add_visit_photo_btn = OutlinedButton(
-            content=Text("Add Photos"),
+            content=Text(self.t("add_photos")),
             icon=Icons.PHOTO_CAMERA,
             on_click=self._take_visit_photo,
             style=ft.ButtonStyle(color=Colors.GREEN_700),
         )
         self.edit_save_btn = Button(
-            content=Text("Save Changes"),
+            content=Text(self.t("save_changes")),
             icon=Icons.SAVE,
             on_click=self.save_edit_changes,
             style=ft.ButtonStyle(
@@ -82,7 +82,7 @@ class TreeEditView:
             ),
         )
         self.edit_delete_btn = OutlinedButton(
-            content=Text("Delete Tree"),
+            content=Text(self.t("delete_tree")),
             icon=Icons.DELETE,
             icon_color=Colors.RED,
             style=ft.ButtonStyle(color=Colors.RED),
@@ -99,7 +99,7 @@ class TreeEditView:
                             content=Container(
                                 content=Column([
                                     Row([
-                                        Text("Tree Details", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                                        Text(self.t("tree_details"), size=16, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                                     ], alignment=MainAxisAlignment.START),
                                     Divider(height=12),
                                     self.edit_tree_code,
@@ -111,13 +111,13 @@ class TreeEditView:
                             margin=Margin(0, 0, 0, 12),
                         ),
                         Divider(height=8),
-                        Text("Visit History", size=18, weight=FontWeight.W_500, font_family="Comfortaa"),
+                        Text(self.t("visit_history"), size=18, weight=FontWeight.W_500, font_family=self._font()),
                         self.edit_visits_list,
                         Divider(height=10),
-                        Text("Add New Visit", size=18, weight=FontWeight.W_500, font_family="Comfortaa"),
+                        Text(self.t("add_new_visit"), size=18, weight=FontWeight.W_500, font_family=self._font()),
                         self.add_visit_status,
                         self.add_visit_notes,
-                        Text("Visit Photos", size=14, weight=FontWeight.W_500, font_family="Comfortaa"),
+                        Text(self.t("visit_photos"), size=14, weight=FontWeight.W_500, font_family=self._font()),
                         self.add_visit_photos_grid,
                         self.add_visit_photo_btn,
                         Divider(height=20),
@@ -181,10 +181,10 @@ class TreeEditView:
         longitude = self.app.current_tree_data.get("longitude", "") if self.app.current_tree_data else ""
 
         if not tree_code:
-            self.app.show_snack("Tree code is required", Colors.RED)
+            self.app.show_snack(self.t("tree_code_required"), Colors.RED)
             return
         if not kind:
-            self.app.show_snack("Kind is required", Colors.RED)
+            self.app.show_snack(self.t("kind_required_msg"), Colors.RED)
             return
 
         try:
@@ -193,23 +193,23 @@ class TreeEditView:
             notes = (self.add_visit_notes.value or "").strip()
             if status:
                 add_visit(self.app.current_tree_id, status, notes, None)
-            self.app.show_snack("Tree updated successfully!", Colors.GREEN)
+            self.app.show_snack(self.t("tree_updated"), Colors.GREEN)
         except Exception as ex:
             self.app.logger.error("Failed to update tree %s: %s", self.app.current_tree_id, ex, exc_info=True)
-            self.app.show_snack("Error updating tree", Colors.RED)
+            self.app.show_snack(self.t("error_updating"), Colors.RED)
             return
         self.app.list_view.show()
 
     async def _take_visit_photo(self):
         if not self.app.camera_available:
-            self.app.show_snack("Camera not available on this platform", Colors.RED)
+            self.app.show_snack(self.t("camera_not_available"), Colors.RED)
             return
         try:
-            self.app.show_snack("Taking photo...", Colors.BLUE)
+            self.app.show_snack(self.t("photo_captured"), Colors.GREEN)
             from flet_camera import ResolutionPreset
             cameras = await self.app.camera.get_available_cameras()
             if not cameras:
-                self.app.show_snack("No camera found", Colors.RED)
+                self.app.show_snack(self.t("camera_not_available"), Colors.RED)
                 return
             await self.app.camera.initialize(
                 description=cameras[0],
@@ -229,7 +229,7 @@ class TreeEditView:
                 )
             )
             self.add_visit_photos_grid.update()
-            self.app.show_snack("Photo captured!", Colors.GREEN)
+            self.app.show_snack(self.t("photo_captured"), Colors.GREEN)
         except Exception as ex:
             self.app.logger.error("Camera capture failed: %s", ex, exc_info=True)
-            self.app.show_snack(f"Camera error: {ex}", Colors.RED)
+            self.app.show_snack(self.t("camera_error") + str(ex), Colors.RED)

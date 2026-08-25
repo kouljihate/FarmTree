@@ -31,47 +31,47 @@ class TreeAddView:
 
     def setup(self):
         self.add_sector = TextField(
-            label="Sector",
-            label_style=TextStyle(font_family="Comfortaa", size=10),
+            label=self.t("sector"),
+            label_style=TextStyle(font_family=self._font(), size=10),
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_zone = TextField(
-            label="Zone",
-            label_style=TextStyle(font_family="Comfortaa", size=10),
+            label=self.t("zone"),
+            label_style=TextStyle(font_family=self._font(), size=10),
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_row = TextField(
-            label="Row",
-            label_style=TextStyle(font_family="Comfortaa", size=10),
+            label=self.t("row"),
+            label_style=TextStyle(font_family=self._font(), size=10),
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_tree_number = TextField(
-            label="Tree",
-            label_style=TextStyle(font_family="Comfortaa", size=10),
+            label=self.t("tree"),
+            label_style=TextStyle(font_family=self._font(), size=10),
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             keyboard_type=KeyboardType.NUMBER,
             on_change=lambda e: self.update_tree_code(),
         )
         self.add_tree_code = TextField(
-            label="Tree Code",
-            hint_text="Auto-generated from Sector/Zone/Row/Tree#",
+            label=self.t("tree_code"),
+            hint_text=self.t("tree_code_hint"),
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             read_only=True,
         )
-        self.location_tree_code = Text("", size=14, font_family="Comfortaa", color=Colors.GREEN_700)
+        self.location_tree_code = Text("", size=14, font_family=self._font(), color=Colors.GREEN_700)
         self.location_coords_badge = Container(
-            content=Text("", size=10, font_family="Comfortaa", color=Colors.GREY_800),
+            content=Text("", size=10, font_family=self._font(), color=Colors.GREY_800),
             padding=Padding(8, 4, 8, 4),
             border=Border.all(1, Colors.GREY_300),
             border_radius=BorderRadius(12, 12, 12, 12),
@@ -81,7 +81,7 @@ class TreeAddView:
             icon=Icons.MY_LOCATION,
             icon_size=18,
             icon_color=Colors.GREEN_700,
-            tooltip="Get GPS location",
+            tooltip=self.t("get_gps"),
             on_click=lambda e: self.get_gps(),
         )
         self.location_card = Card(
@@ -107,34 +107,34 @@ class TreeAddView:
         )
 
         self.add_kind = Dropdown(
-            label="Kind *",
+            label=self.t("kind_required"),
             options=KIND_DROPDOWN_ITEMS,
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             on_select=self.on_kind_change,
         )
         self.add_variety = Dropdown(
-            label="Variety",
-            hint_text="Select variety",
+            label=self.t("variety"),
+            hint_text=self.t("variety_hint"),
             options=[],
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             expand=True,
         )
         self.add_status = Dropdown(
-            label="Status *",
+            label=self.t("status_required"),
             options=STATUS_DROPDOWN_ITEMS,
             border=InputBorder.OUTLINE,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             expand=True,
         )
         self.add_notes = TextField(
-            label="Notes",
+            label=self.t("notes"),
             border=InputBorder.OUTLINE,
             multiline=True,
             min_lines=2,
             max_lines=4,
-            text_style=TextStyle(font_family="Comfortaa"),
+            text_style=TextStyle(font_family=self._font()),
             expand=True,
         )
 
@@ -184,7 +184,7 @@ class TreeAddView:
             content=Container(
                 content=Column([
                     Row([
-                        Text("Tree Details", size=16, weight=FontWeight.BOLD, font_family="Comfortaa", color=Colors.GREEN_700),
+                        Text(self.t("tree_details"), size=16, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
                     ], alignment=MainAxisAlignment.START),
                     Divider(height=12),
                     Row([
@@ -302,13 +302,13 @@ class TreeAddView:
         notes = (self.add_notes.value or "").strip()
 
         if not tree_code:
-            self.app.show_snack("Tree code is required", Colors.RED)
+            self.app.show_snack(self.t("tree_code_required"), Colors.RED)
             return
         if not kind:
-            self.app.show_snack("Kind is required", Colors.RED)
+            self.app.show_snack(self.t("kind_required_msg"), Colors.RED)
             return
         if not status:
-            self.app.show_snack("Status is required", Colors.RED)
+            self.app.show_snack(self.t("status_required_msg"), Colors.RED)
             return
 
         sector = self.add_sector.value.strip() if self.add_sector.value else ""
@@ -317,16 +317,16 @@ class TreeAddView:
         tree_number = self.add_tree_number.value.strip() if self.add_tree_number.value else ""
 
         if not sector or not sector.isdigit() or int(sector) <= 0:
-            self.app.show_snack("Sector must be a positive number", Colors.RED)
+            self.app.show_snack(self.t("sector_positive"), Colors.RED)
             return
         if not zone or not zone.isdigit() or int(zone) <= 0:
-            self.app.show_snack("Zone must be a positive number", Colors.RED)
+            self.app.show_snack(self.t("zone_positive"), Colors.RED)
             return
         if not row or not row.isdigit() or int(row) <= 0:
-            self.app.show_snack("Row must be a positive number", Colors.RED)
+            self.app.show_snack(self.t("row_positive"), Colors.RED)
             return
         if not tree_number or not tree_number.isdigit() or int(tree_number) <= 0:
-            self.app.show_snack("Tree must be a positive number", Colors.RED)
+            self.app.show_snack(self.t("tree_positive"), Colors.RED)
             return
 
         photo_path = None
@@ -342,14 +342,14 @@ class TreeAddView:
                 photo_path = dst
             except Exception as ex:
                 self.app.logger.error("Failed to save photo: %s", ex, exc_info=True)
-                self.app.show_snack("Error saving photo", Colors.RED)
+                self.app.show_snack(self.t("error_saving_photo"), Colors.RED)
 
         try:
             insert_tree(tree_code, kind, variety, latitude, longitude, status, notes, [photo_path] if photo_path else None)
-            self.app.show_snack("Tree added! Ready for next." if next_mode else "Tree added successfully!", Colors.GREEN)
+            self.app.show_snack(self.t("tree_added_next") if next_mode else self.t("tree_added"), Colors.GREEN)
         except Exception as ex:
             self.app.logger.error("Failed to save tree: %s", ex, exc_info=True)
-            self.app.show_snack("Error saving tree", Colors.RED)
+            self.app.show_snack(self.t("error_saving"), Colors.RED)
             return
 
         if next_mode:
@@ -392,10 +392,10 @@ class TreeAddView:
 
     async def _take_photo(self):
         if not self.app.camera_available:
-            self.app.show_snack("Camera not available on this platform", Colors.RED)
+            self.app.show_snack(self.t("camera_not_available"), Colors.RED)
             return
         try:
-            self.app.show_snack("Taking photo...", Colors.BLUE)
+            self.app.show_snack(self.t("taking_photo"), Colors.BLUE)
             from flet_camera import ResolutionPreset
             cameras = await self.app.camera.get_available_cameras()
             if not cameras:
@@ -416,14 +416,14 @@ class TreeAddView:
             self.add_photo_placeholder.visible = False
             self.add_photo_img.update()
             self.add_photo_placeholder.update()
-            self.app.show_snack("Photo captured!", Colors.GREEN)
+            self.app.show_snack(self.t("photo_captured"), Colors.GREEN)
         except Exception as ex:
             self.app.logger.error("Camera capture failed: %s", ex, exc_info=True)
             self.app.show_snack(f"Camera error: {ex}", Colors.RED)
 
     def get_gps(self):
         if not self.app.geolocator_available:
-            self.app.show_snack("GPS not available on this platform", Colors.RED)
+            self.app.show_snack(self.t("gps_unavailable"), Colors.RED)
             return
 
         async def _get_position():
@@ -431,7 +431,7 @@ class TreeAddView:
                 from flet_geolocator import GeolocatorConfiguration, GeolocatorPositionAccuracy, GeolocatorPermissionStatus
                 perm = await self.app.geolocator.request_permission()
                 if perm in (GeolocatorPermissionStatus.DENIED, GeolocatorPermissionStatus.DENIED_FOREVER):
-                    self.app.show_snack("Location permission denied", Colors.RED)
+                    self.app.show_snack(self.t("gps_unavailable"), Colors.RED)
                     return
                 pos = await self.app.geolocator.get_current_position(
                     GeolocatorConfiguration(accuracy=GeolocatorPositionAccuracy.HIGH)
@@ -445,10 +445,10 @@ class TreeAddView:
                     )
                     self.location_coords_badge.visible = True
                     self.location_coords_badge.update()
-                self.app.show_snack("GPS coordinates captured", Colors.GREEN)
+                self.app.show_snack(self.t("gps_captured"), Colors.GREEN)
             except Exception as ex:
                 self.app.logger.warning("Geolocator failed: %s", ex)
-                self.app.show_snack("GPS location unavailable", Colors.RED)
+                self.app.show_snack(self.t("gps_unavailable"), Colors.RED)
 
         self.app._gps_task = asyncio.create_task(_get_position())
-        self.app.show_snack("Getting GPS location...", Colors.BLUE)
+        self.app.show_snack(self.t("gps_getting"), Colors.BLUE)
