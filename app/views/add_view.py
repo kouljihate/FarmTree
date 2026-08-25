@@ -284,7 +284,7 @@ class TreeAddView:
             self.app.logger.warning("update_tree_code: %s", ex)
 
     def on_kind_change(self, e):
-        kind = e.control.value or e.data
+        kind = e.data if e.data else (e.control.value if e.control.value else "")
         if kind and kind in TREE_VARIETIES:
             self.add_variety.options = [DropdownOption(text=v, key=v) for v in TREE_VARIETIES[kind]]
         else:
@@ -429,6 +429,10 @@ class TreeAddView:
         async def _get_position():
             try:
                 from flet_geolocator import GeolocatorConfiguration, GeolocatorPositionAccuracy
+                perm = await self.app.geolocator.request_permission()
+                if not perm:
+                    self.app.show_snack("Location permission denied", Colors.RED)
+                    return
                 pos = await self.app.geolocator.get_current_position(
                     GeolocatorConfiguration(accuracy=GeolocatorPositionAccuracy.HIGH)
                 )

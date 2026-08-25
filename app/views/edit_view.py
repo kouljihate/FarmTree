@@ -162,7 +162,7 @@ class TreeEditView:
         self.add_visit_photos_grid.update()
 
     def on_edit_kind_change(self, e):
-        kind = e.control.value or e.data
+        kind = e.data if e.data else (e.control.value if e.control.value else "")
         if kind and kind in TREE_VARIETIES:
             self.edit_variety.options = [DropdownOption(text=v, key=v) for v in TREE_VARIETIES[kind]]
         else:
