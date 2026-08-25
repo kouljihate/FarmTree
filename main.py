@@ -234,10 +234,16 @@ class TreesApp:
         self.main_container.update()
 
     def _remove_old_bottomsheets(self):
-        self.page.overlay.controls = [
-            c for c in self.page.overlay.controls
-            if not isinstance(c, BottomSheet)
-        ]
+        if hasattr(self.page.overlay, 'controls'):
+            self.page.overlay.controls = [
+                c for c in self.page.overlay.controls
+                if not isinstance(c, BottomSheet)
+            ]
+        else:
+            self.page.overlay = [
+                c for c in self.page.overlay
+                if not isinstance(c, BottomSheet)
+            ]
 
     def apply_language(self):
         self.page.rtl = self.lang == "ar"
