@@ -3,7 +3,7 @@ from flet import (
     Container, Text, Row, Column, ListView, Card, ListTile, IconButton,
     Icon, Icons, Colors, Padding, Margin, BorderRadius, FontWeight,
     CrossAxisAlignment, MainAxisAlignment, ProgressRing, BottomAppBar,
-    Image, Stack, ScrollMode, alignment, BoxFit,
+    Image, Stack, alignment, BoxFit,
 )
 from app.config import STATUS_LOOKUP
 from app.database import get_trees_slice, search_trees, count_trees, invalidate_cache

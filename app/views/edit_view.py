@@ -1,4 +1,3 @@
-import asyncio
 import tempfile
 
 import flet as ft
@@ -41,7 +40,7 @@ class TreeEditView:
             text_style=TextStyle(font_family="Comfortaa"),
             expand=True,
         )
-        self.edit_kind.on_select = self.on_edit_kind_change
+        self.edit_kind.on_change = self.on_edit_kind_change
         self.edit_variety = Dropdown(
             label="Variety",
             hint_text="Select variety",

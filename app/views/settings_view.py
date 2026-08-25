@@ -91,8 +91,6 @@ class SettingsView:
         self.app.apply_language()
 
     def show_help(self, e):
-        from app.logger import read_logs
-
         def close(e):
             dlg.open = False
             self.app.page.update()

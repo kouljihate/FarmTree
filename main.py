@@ -7,6 +7,7 @@ from flet import (
     NavigationBar, NavigationBarDestination, TextStyle,
     Padding, FontWeight, CrossAxisAlignment, MainAxisAlignment,
     PopupMenuItem, BottomSheet, ListView, AlertDialog, TextButton,
+    ListTile,
 )
 from app.config import STATUS_LOOKUP
 from app.database import init_db, delete_tree, get_tree, update_tree_status, invalidate_cache
@@ -49,7 +50,6 @@ class TreesApp:
         self.lang = "en"
         self.version = version.version
         self._gps_task = None
-        self._bottomsheets: list[BottomSheet] = []
 
         self.logger = get_logger()
 
@@ -240,7 +240,7 @@ class TreesApp:
                 if not isinstance(c, BottomSheet)
             ]
         else:
-            self.page.overlay = [
+            self.page.overlay[:] = [
                 c for c in self.page.overlay
                 if not isinstance(c, BottomSheet)
             ]
@@ -331,7 +331,6 @@ class TreesApp:
                 self.logger.error("Failed to delete tree %s: %s", self.current_tree_id, ex, exc_info=True)
                 self.show_snack("Error deleting tree", Colors.RED)
                 return
-            import os
             for p in photos:
                 try:
                     os.remove(p)

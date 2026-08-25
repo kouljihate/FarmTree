@@ -112,7 +112,7 @@ class TreeAddView:
             border=InputBorder.OUTLINE,
             text_style=TextStyle(font_family="Comfortaa"),
         )
-        self.add_kind.on_select = self.on_kind_change
+        self.add_kind.on_change = self.on_kind_change
         self.add_variety = Dropdown(
             label="Variety",
             hint_text="Select variety",
@@ -311,10 +311,10 @@ class TreeAddView:
             self.app.show_snack("Status is required", Colors.RED)
             return
 
-        sector = self.add_sector.value.strip()
-        zone = self.add_zone.value.strip()
-        row = self.add_row.value.strip()
-        tree_number = self.add_tree_number.value.strip()
+        sector = self.add_sector.value.strip() if self.add_sector.value else ""
+        zone = self.add_zone.value.strip() if self.add_zone.value else ""
+        row = self.add_row.value.strip() if self.add_row.value else ""
+        tree_number = self.add_tree_number.value.strip() if self.add_tree_number.value else ""
 
         if not sector or not sector.isdigit() or int(sector) <= 0:
             self.app.show_snack("Sector must be a positive number", Colors.RED)
