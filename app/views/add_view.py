@@ -82,7 +82,7 @@ class TreeAddView:
             icon_size=18,
             icon_color=Colors.GREEN_700,
             tooltip=self.t("get_gps"),
-            on_click=lambda e: self.get_gps(),
+            on_click=self.app.safe_handler(lambda e: self.get_gps()),
         )
         self.location_card = Card(
             content=Container(
@@ -159,7 +159,7 @@ class TreeAddView:
         )
         self.add_take_photo_btn = FilledButton(
             content=Row([Icon(Icons.CAMERA_ALT), Text(self.t("take_photo"))], spacing=8, alignment=MainAxisAlignment.CENTER),
-            on_click=self._take_photo,
+            on_click=self.app.safe_handler(self._take_photo),
             style=ft.ButtonStyle(color=Colors.WHITE, bgcolor=Colors.GREEN_700, padding=Padding(16, 12, 16, 12)),
         )
 
@@ -202,7 +202,7 @@ class TreeAddView:
         self.add_save_btn = Button(
             content=Text(self.t("save_tree")),
             icon=Icons.SAVE,
-            on_click=self.save_new_tree,
+            on_click=self.app.safe_handler(self.save_new_tree),
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_700,
                 color=Colors.WHITE,
@@ -212,7 +212,7 @@ class TreeAddView:
         self.add_save_next_btn = Button(
             content=Text(self.t("save_next")),
             icon=Icons.SKIP_NEXT,
-            on_click=self.save_new_tree_next,
+            on_click=self.app.safe_handler(self.save_new_tree_next),
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_500,
                 color=Colors.WHITE,

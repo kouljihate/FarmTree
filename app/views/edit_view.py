@@ -68,13 +68,13 @@ class TreeEditView:
         self.add_visit_photo_btn = OutlinedButton(
             content=Text(self.t("add_photos")),
             icon=Icons.PHOTO_CAMERA,
-            on_click=self._take_visit_photo,
+            on_click=self.app.safe_handler(self._take_visit_photo),
             style=ft.ButtonStyle(color=Colors.GREEN_700),
         )
         self.edit_save_btn = Button(
             content=Text(self.t("save_changes")),
             icon=Icons.SAVE,
-            on_click=self.save_edit_changes,
+            on_click=self.app.safe_handler(self.save_edit_changes),
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_700,
                 color=Colors.WHITE,
@@ -86,7 +86,7 @@ class TreeEditView:
             icon=Icons.DELETE,
             icon_color=Colors.RED,
             style=ft.ButtonStyle(color=Colors.RED),
-            on_click=lambda _: self.app.confirm_delete_current(),
+            on_click=self.app.safe_handler(lambda _: self.app.confirm_delete_current()),
         )
 
         self.container = Container(

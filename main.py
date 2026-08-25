@@ -367,6 +367,44 @@ class TreesApp:
         self.page.snack_bar.open = True
         self.page.update()
 
+    def show_error_popup(self, error_id: str, description: str):
+        import traceback as _tb
+        self.logger.error("Error %s: %s", error_id, description)
+
+        def close_dlg(e):
+            dlg.open = False
+            self.page.update()
+
+        dlg = AlertDialog(
+            title=Row([
+                Icon(Icons.ERROR, color=Colors.RED, size=24),
+                Text(f"Error {error_id}", font_family="Comfortaa", size=16, color=Colors.RED),
+            ]),
+            content=Container(
+                content=Column([
+                    Text(description, font_family="Comfortaa", size=13, color=Colors.GREY_800, selectable=True),
+                ], spacing=8),
+                width=350,
+                padding=Padding(0, 8, 0, 0),
+            ),
+            actions=[
+                TextButton("OK", on_click=close_dlg, style=ft.ButtonStyle(color=Colors.GREEN_700)),
+            ],
+        )
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+
+    def safe_handler(self, func):
+        import uuid as _uuid
+        def wrapper(e):
+            try:
+                return func(e)
+            except Exception as ex:
+                error_id = _uuid.uuid4().hex[:8].upper()
+                self.show_error_popup(error_id, str(ex))
+        return wrapper
+
     def confirm_delete_current(self):
         def confirm(e):
             self.delete_current_tree()
@@ -394,8 +432,9 @@ class TreesApp:
             try:
                 photos = delete_tree(self.current_tree_id)
             except Exception as ex:
-                self.logger.error("Failed to delete tree %s: %s", self.current_tree_id, ex, exc_info=True)
-                self.show_snack("Error deleting tree", Colors.RED)
+                import uuid as _uuid
+                error_id = _uuid.uuid4().hex[:8].upper()
+                self.show_error_popup(error_id, f"Failed to delete tree: {ex}")
                 return
             for p in photos:
                 try:
