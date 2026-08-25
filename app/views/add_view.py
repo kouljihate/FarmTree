@@ -293,7 +293,7 @@ class TreeAddView:
         self.add_variety.update()
 
     def _save_tree(self, e, next_mode: bool = False):
-        tree_code = self.add_tree_code.value.strip()
+        tree_code = (self.add_tree_code.value or "").strip()
         kind = self.add_kind.value
         variety = (self.add_variety.value or "").strip()
         latitude = self.app.captured_gps_lat
