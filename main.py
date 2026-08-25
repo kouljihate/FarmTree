@@ -7,7 +7,7 @@ from flet import (
     NavigationBar, NavigationBarDestination, TextStyle,
     Padding, FontWeight, CrossAxisAlignment, MainAxisAlignment,
     PopupMenuItem, BottomSheet, ListView, AlertDialog, TextButton,
-    ListTile, alignment, ProgressRing, LinearGradient,
+    ListTile, alignment, ProgressRing, LinearGradient, BorderRadius,
 )
 from app.config import STATUS_LOOKUP
 from app.database import init_db, delete_tree, get_tree, update_tree_status, invalidate_cache
