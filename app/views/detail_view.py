@@ -1,6 +1,6 @@
 import flet as ft
 from flet import (
-    Container, Text, Row, Column, ListView, Card, Button, OutlinedButton,
+    Container, Text, Row, Column, ListView, Card, FilledButton, OutlinedButton,
     GridView, Image, Icon, Icons, Colors, Padding, BorderRadius, FontWeight,
     Divider, alignment, BoxFit, ClipBehavior,
     CrossAxisAlignment, MainAxisAlignment,
@@ -34,9 +34,8 @@ class TreeDetailView:
         self.detail_photos_grid = GridView(expand=False, max_extent=120, child_aspect_ratio=1, spacing=8, run_spacing=8)
         self.detail_visits_list = Column(spacing=8)
 
-        self.detail_edit_btn = Button(
-            content=Text("Edit"),
-            icon=Icons.EDIT,
+        self.detail_edit_btn = FilledButton(
+            content=Row([Icon(Icons.EDIT), Text("Edit")], spacing=8, alignment=MainAxisAlignment.CENTER),
             on_click=lambda _: self._edit_current_tree(),
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_700,
@@ -45,16 +44,14 @@ class TreeDetailView:
             ),
         )
         self.detail_delete_btn = OutlinedButton(
-            content=Text("Delete"),
-            icon=Icons.DELETE,
+            content=Row([Icon(Icons.DELETE), Text("Delete")], spacing=8, alignment=MainAxisAlignment.CENTER),
             icon_color=Colors.RED,
             style=ft.ButtonStyle(color=Colors.RED),
             on_click=lambda _: self.app.confirm_delete_current(),
         )
 
-        self.detail_add_visit_btn = Button(
-            content=Text("New Visit"),
-            icon=Icons.ADD,
+        self.detail_add_visit_btn = FilledButton(
+            content=Row([Icon(Icons.ADD), Text("New Visit")], spacing=8, alignment=MainAxisAlignment.CENTER),
             on_click=lambda _: self._edit_current_tree(),
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_500,

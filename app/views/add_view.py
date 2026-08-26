@@ -199,9 +199,8 @@ class TreeAddView:
             elevation=2,
             margin=Margin(0, 0, 0, 12),
         )
-        self.add_save_btn = Button(
-            content=Text(self.t("save_tree")),
-            icon=Icons.SAVE,
+        self.add_save_btn = FilledButton(
+            content=Row([Icon(Icons.SAVE), Text(self.t("save_tree"))], spacing=8, alignment=MainAxisAlignment.CENTER),
             on_click=self.save_new_tree,
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_700,
@@ -209,9 +208,8 @@ class TreeAddView:
                 padding=Padding(20, 12, 20, 12),
             ),
         )
-        self.add_save_next_btn = Button(
-            content=Text(self.t("save_next")),
-            icon=Icons.SKIP_NEXT,
+        self.add_save_next_btn = FilledButton(
+            content=Row([Icon(Icons.SKIP_NEXT), Text(self.t("save_next"))], spacing=8, alignment=MainAxisAlignment.CENTER),
             on_click=self.save_new_tree_next,
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_500,

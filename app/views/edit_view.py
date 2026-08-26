@@ -3,7 +3,7 @@ import tempfile
 import flet as ft
 from flet import (
     Container, Text, Row, Column, ListView, Card, TextField, Dropdown,
-    DropdownOption, Button, OutlinedButton, IconButton, Icon, Icons,
+    DropdownOption, Button, FilledButton, OutlinedButton, IconButton, Icon, Icons,
     GridView, Image, Colors, Padding, Margin, BorderRadius, FontWeight,
     InputBorder, TextStyle, Divider, alignment, BoxFit,
     CrossAxisAlignment, MainAxisAlignment,
@@ -71,9 +71,8 @@ class TreeEditView:
             on_click=lambda e: self.app.page.run_task(self._take_visit_photo),
             style=ft.ButtonStyle(color=Colors.GREEN_700),
         )
-        self.edit_save_btn = Button(
-            content=Text(self.t("save_changes")),
-            icon=Icons.SAVE,
+        self.edit_save_btn = FilledButton(
+            content=Row([Icon(Icons.SAVE), Text(self.t("save_changes"))], spacing=8, alignment=MainAxisAlignment.CENTER),
             on_click=self.save_edit_changes,
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_700,
