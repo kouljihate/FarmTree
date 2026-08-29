@@ -362,8 +362,8 @@ class TreesApp:
         self.list_view.current_page = 0
         self.list_view.load_trees()
 
-    def show_snack(self, message: str, color: str):
-        self.page.snack_bar = SnackBar(content=Text(message, color=Colors.WHITE, font_family="Comfortaa"), bgcolor=color, duration=2000)
+    def show_snack(self, message: str, color: str, duration: int = 3000):
+        self.page.snack_bar = SnackBar(content=Text(message, color=Colors.WHITE, font_family="Comfortaa"), bgcolor=color, duration=duration)
         self.page.snack_bar.open = True
         self.page.update()
 

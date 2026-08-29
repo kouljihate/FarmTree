@@ -298,7 +298,7 @@ class TreeAddView:
             self._save_tree_impl(e, next_mode=next_mode)
         except Exception as ex:
             self.app.logger.error("Save tree failed: %s", ex, exc_info=True)
-            self.app.show_error_popup("SAVE-01", f"{ex}")
+            self.app.show_snack(self.t("error_saving"), Colors.RED, duration=3000)
 
     def _save_tree_impl(self, e, next_mode: bool = False):
         tree_code = (self.add_tree_code.value or "").strip()
