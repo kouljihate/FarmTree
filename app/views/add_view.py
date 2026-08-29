@@ -158,7 +158,8 @@ class TreeAddView:
             alignment=alignment.Alignment(0, 0),
         )
         self.add_take_photo_btn = FilledButton(
-            content=Row([Icon(Icons.CAMERA_ALT), Text(self.t("take_photo"))], spacing=8, alignment=MainAxisAlignment.CENTER),
+            text=self.t("take_photo"),
+            icon=Icons.CAMERA_ALT,
             on_click=lambda e: self.app.page.run_task(self._take_photo),
             style=ft.ButtonStyle(color=Colors.WHITE, bgcolor=Colors.GREEN_700, padding=Padding(16, 12, 16, 12)),
         )
@@ -200,7 +201,8 @@ class TreeAddView:
             margin=Margin(0, 0, 0, 12),
         )
         self.add_save_btn = FilledButton(
-            content=Row([Icon(Icons.SAVE), Text(self.t("save_tree"))], spacing=8, alignment=MainAxisAlignment.CENTER),
+            text=self.t("save_tree"),
+            icon=Icons.SAVE,
             on_click=self.save_new_tree,
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_700,
@@ -209,7 +211,8 @@ class TreeAddView:
             ),
         )
         self.add_save_next_btn = FilledButton(
-            content=Row([Icon(Icons.SKIP_NEXT), Text(self.t("save_next"))], spacing=8, alignment=MainAxisAlignment.CENTER),
+            text=self.t("save_next"),
+            icon=Icons.SKIP_NEXT,
             on_click=self.save_new_tree_next,
             style=ft.ButtonStyle(
                 bgcolor=Colors.GREEN_500,
@@ -291,6 +294,13 @@ class TreeAddView:
         self.add_variety.update()
 
     def _save_tree(self, e, next_mode: bool = False):
+        try:
+            self._save_tree_impl(e, next_mode=next_mode)
+        except Exception as ex:
+            self.app.logger.error("Save tree failed: %s", ex, exc_info=True)
+            self.app.show_error_popup("SAVE-01", f"{ex}")
+
+    def _save_tree_impl(self, e, next_mode: bool = False):
         tree_code = (self.add_tree_code.value or "").strip()
         kind = self.add_kind.value
         variety = (self.add_variety.value or "").strip()
