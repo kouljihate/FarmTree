@@ -35,7 +35,7 @@ print("=" * 70)
 print("APK BUILD FOR ANDROID 15 (API 35) - FARM TREE MANAGER")
 print("=" * 70)
 print(f"Project: Farm Tree Manager v{APP_VERSION}")
-print(f"Build Number: 34")
+print(f"Build Number: 35")
 print(f"Target Android: API 35 (Android 15)")
 print(f"Architecture: arm64-v8a")
 print(f"JAVA_HOME: {_JAVA_HOME}")
@@ -67,7 +67,7 @@ build_cmd = [
     "--android-signing-key-store-password", "FarmTree2026!",
     "--android-signing-key-password", "FarmTree2026!",
     "--android-signing-key-alias", "farmtree",
-    "--build-number", "34",
+    "--build-number", "35",
     "--build-version", APP_VERSION,
     "--arch", "arm64-v8a",
     "--split-per-abi",
@@ -78,7 +78,7 @@ build_cmd = [
 ]
 
 print(f"\nBuilding APK for Android 15...")
-print(f"Timeout: 3600 seconds (60 minutes)")
+print(f"Timeout: 5400 seconds (90 minutes)")
 
 print(f"\nStarting build process...")
 print(f"This may take 15-60 minutes. Please wait...")
@@ -89,7 +89,7 @@ try:
         capture_output=True,
         text=True,
         encoding='utf-8',
-        timeout=3600
+        timeout=5400
     )
 
     print("\n" + "=" * 70)
@@ -158,7 +158,7 @@ except subprocess.TimeoutExpired:
     print("\n" + "=" * 70)
     print("BUILD TIMEOUT")
     print("=" * 70)
-    print("APK build timed out after 60 minutes.")
+    print("APK build timed out after 90 minutes.")
     print("=" * 70)
 
     sys.exit(1)
