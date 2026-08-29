@@ -158,7 +158,7 @@ class TreeAddView:
             alignment=alignment.Alignment(0, 0),
         )
         self.add_take_photo_btn = FilledButton(
-            text=self.t("take_photo"),
+            content=Text(self.t("take_photo")),
             icon=Icons.CAMERA_ALT,
             on_click=lambda e: self.app.page.run_task(self._take_photo),
             style=ft.ButtonStyle(color=Colors.WHITE, bgcolor=Colors.GREEN_700, padding=Padding(16, 12, 16, 12)),
@@ -201,7 +201,7 @@ class TreeAddView:
             margin=Margin(0, 0, 0, 12),
         )
         self.add_save_btn = FilledButton(
-            text=self.t("save_tree"),
+            content=Text(self.t("save_tree")),
             icon=Icons.SAVE,
             on_click=self.save_new_tree,
             style=ft.ButtonStyle(
@@ -211,7 +211,7 @@ class TreeAddView:
             ),
         )
         self.add_save_next_btn = FilledButton(
-            text=self.t("save_next"),
+            content=Text(self.t("save_next")),
             icon=Icons.SKIP_NEXT,
             on_click=self.save_new_tree_next,
             style=ft.ButtonStyle(

@@ -35,7 +35,7 @@ class TreeDetailView:
         self.detail_visits_list = Column(spacing=8)
 
         self.detail_edit_btn = FilledButton(
-            text="Edit",
+            content=Text("Edit"),
             icon=Icons.EDIT,
             on_click=lambda _: self._edit_current_tree(),
             style=ft.ButtonStyle(
@@ -45,7 +45,7 @@ class TreeDetailView:
             ),
         )
         self.detail_delete_btn = OutlinedButton(
-            text="Delete",
+            content=Text("Delete"),
             icon=Icons.DELETE,
             icon_color=Colors.RED,
             style=ft.ButtonStyle(color=Colors.RED),
@@ -53,7 +53,7 @@ class TreeDetailView:
         )
 
         self.detail_add_visit_btn = FilledButton(
-            text="New Visit",
+            content=Text("New Visit"),
             icon=Icons.ADD,
             on_click=lambda _: self._edit_current_tree(),
             style=ft.ButtonStyle(

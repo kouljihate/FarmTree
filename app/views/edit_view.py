@@ -72,7 +72,7 @@ class TreeEditView:
             style=ft.ButtonStyle(color=Colors.GREEN_700),
         )
         self.edit_save_btn = FilledButton(
-            text=self.t("save_changes"),
+            content=Text(self.t("save_changes")),
             icon=Icons.SAVE,
             on_click=self.save_edit_changes,
             style=ft.ButtonStyle(
