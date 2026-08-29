@@ -92,8 +92,7 @@ class SettingsView:
 
     def show_help(self, e):
         def close(e):
-            dlg.open = False
-            self.app.page.update()
+            self.app.page.pop_dialog()
 
         dlg = AlertDialog(
             title=Text(self.t("help_title"), font_family=self._font(), weight=FontWeight.BOLD),
@@ -107,14 +106,11 @@ class SettingsView:
             ], spacing=8, tight=True),
             actions=[TextButton(self.t("close"), on_click=close)],
         )
-        self.app.page.dialog = dlg
-        dlg.open = True
-        self.app.page.update()
+        self.app.page.show_dialog(dlg)
 
     def show_about(self, e):
         def close(e):
-            dlg.open = False
-            self.app.page.update()
+            self.app.page.pop_dialog()
 
         dlg = AlertDialog(
             title=Text(self.t("about_title"), font_family=self._font(), weight=FontWeight.BOLD),
@@ -126,16 +122,13 @@ class SettingsView:
             ], spacing=8, tight=True),
             actions=[TextButton(self.t("close"), on_click=close)],
         )
-        self.app.page.dialog = dlg
-        dlg.open = True
-        self.app.page.update()
+        self.app.page.show_dialog(dlg)
 
     def show_logs(self, e):
         from app.logger import read_logs
 
         def close(e):
-            dlg.open = False
-            self.app.page.update()
+            self.app.page.pop_dialog()
 
         def refresh(e):
             lines = read_logs(200)
@@ -156,6 +149,4 @@ class SettingsView:
                 TextButton("Close", on_click=close),
             ],
         )
-        self.app.page.dialog = dlg
-        dlg.open = True
-        self.app.page.update()
+        self.app.page.show_dialog(dlg)

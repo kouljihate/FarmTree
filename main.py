@@ -363,16 +363,19 @@ class TreesApp:
         self.list_view.load_trees()
 
     def show_snack(self, message: str, color: str, duration: int = 3000):
-        self.page.snack_bar = SnackBar(content=Text(message, color=Colors.WHITE, font_family="Comfortaa"), bgcolor=color, duration=duration)
-        self.page.snack_bar.open = True
-        self.page.update()
+        self.page.show_dialog(
+            SnackBar(
+                content=Text(message, color=Colors.WHITE, font_family="Comfortaa"),
+                bgcolor=color,
+                duration=duration,
+            )
+        )
 
     def show_error_popup(self, error_id: str, description: str):
         self.logger.error("Error %s: %s", error_id, description)
 
         def close_dlg(e):
-            dlg.open = False
-            self.page.update()
+            self.page.pop_dialog()
 
         dlg = AlertDialog(
             title=Row([
@@ -390,19 +393,15 @@ class TreesApp:
                 TextButton("OK", on_click=close_dlg, style=ft.ButtonStyle(color=Colors.GREEN_700)),
             ],
         )
-        self.page.dialog = dlg
-        dlg.open = True
-        self.page.update()
+        self.page.show_dialog(dlg)
 
     def confirm_delete_current(self):
         def confirm(e):
+            self.page.pop_dialog()
             self.delete_current_tree()
-            dlg.open = False
-            self.page.update()
 
         def cancel(e):
-            dlg.open = False
-            self.page.update()
+            self.page.pop_dialog()
 
         dlg = AlertDialog(
             title=Text(self.t("delete_title"), font_family=self._font()),
@@ -412,9 +411,7 @@ class TreesApp:
                 TextButton(self.t("delete"), on_click=confirm, style=ft.ButtonStyle(color=Colors.RED)),
             ],
         )
-        self.page.dialog = dlg
-        dlg.open = True
-        self.page.update()
+        self.page.show_dialog(dlg)
 
     def delete_current_tree(self):
         if self.current_tree_id:
@@ -437,8 +434,7 @@ class TreesApp:
     def show_tree_context_menu(self, tree: dict):
         def make_handler(fn):
             def handler(e):
-                bs.open = False
-                self.page.update()
+                self.page.pop_dialog()
                 fn()
             return handler
 
@@ -470,19 +466,15 @@ class TreesApp:
                 ], spacing=8, tight=True),
                 padding=Padding(20, 20, 20, 20),
             ),
-            open=True,
         )
-        self._remove_old_bottomsheets()
-        self.page.overlay.append(bs)
-        self.page.update()
+        self.page.show_dialog(bs)
 
     def show_status_picker(self, tree: dict):
         def on_status_click(status):
             update_tree_status(tree["id"], status)
             self.show_snack(f"Status updated to {status}", Colors.GREEN)
             self.list_view.load_trees()
-            bs.open = False
-            self.page.update()
+            self.page.pop_dialog()
 
         items = []
         for status, color in STATUS_LOOKUP.items():
@@ -505,11 +497,8 @@ class TreesApp:
                 ], spacing=8, tight=True),
                 padding=Padding(20, 20, 20, 20),
             ),
-            open=True,
         )
-        self._remove_old_bottomsheets()
-        self.page.overlay.append(bs)
-        self.page.update()
+        self.page.show_dialog(bs)
 
     def show_history_bottom_sheet(self, tree_id: int):
         tree = get_tree(tree_id)
@@ -529,11 +518,8 @@ class TreesApp:
                 padding=Padding(20, 20, 20, 20),
                 height=400,
             ),
-            open=True,
         )
-        self._remove_old_bottomsheets()
-        self.page.overlay.append(bs)
-        self.page.update()
+        self.page.show_dialog(bs)
 
 
 def main(page: Page):
