@@ -8,7 +8,7 @@ This is a **complete working application** with the following structure:
 
 ### Core Files
 
-#### `main.py` (~570 lines)
+#### `main.py` (~556 lines)
 - App entry point, navigation, and view orchestration
 - Splash screen with animated loading
 - GPS and camera service initialization (overlay-based for Camera)
@@ -53,6 +53,8 @@ This is a **complete working application** with the following structure:
 - `assets/fonts/Comfortaa-Regular.ttf` - Typography font
 - `assets/fonts/AlMaghrebi-Modern-Wahib.ttf` - Arabic font
 - `assets/firebase_config.json` - Firebase configuration
+- `assets/icon.png` - App launcher icon (1024x1024, generated)
+- `generate_icon.py` - Generates `assets/icon.png` (requires Pillow)
 - `data/trees.json` - TinyDB document store (fallback)
 - `data/photos/` - Photo storage directory (gitignored)
 - `version.py` - Version string
@@ -143,14 +145,21 @@ flet run main.py --web
 python build_apk_android15.py
 ```
 
+The APK build automatically picks up `assets/icon.png` as the launcher icon (flet detects it from the app's `assets/` directory). Regenerate the icon (requires Pillow) with:
+
+```bash
+python generate_icon.py
+```
+
 ### Build Requirements
 
 - **JDK 17** (required by Gradle 8.14 / AGP 8.11.1)
 - **Android SDK** with platforms up to API 36
 - **Flutter** 3.44+
+- **Pillow** (only to regenerate the app icon via `generate_icon.py`)
 - **PYTHONUTF8=1** for Windows console emoji support
 
 ---
 
 **Status**: COMPLETE WORKING APPLICATION
-**Version**: 1.21.0
+**Version**: 1.22.1

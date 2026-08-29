@@ -35,7 +35,7 @@ print("=" * 70)
 print("APK BUILD FOR ANDROID 15 (API 35) - FARM TREE MANAGER")
 print("=" * 70)
 print(f"Project: Farm Tree Manager v{APP_VERSION}")
-print(f"Build Number: 33")
+print(f"Build Number: 34")
 print(f"Target Android: API 35 (Android 15)")
 print(f"Architecture: arm64-v8a")
 print(f"JAVA_HOME: {_JAVA_HOME}")
@@ -67,7 +67,7 @@ build_cmd = [
     "--android-signing-key-store-password", "FarmTree2026!",
     "--android-signing-key-password", "FarmTree2026!",
     "--android-signing-key-alias", "farmtree",
-    "--build-number", "33",
+    "--build-number", "34",
     "--build-version", APP_VERSION,
     "--arch", "arm64-v8a",
     "--split-per-abi",
