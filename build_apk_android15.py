@@ -8,6 +8,7 @@ import subprocess
 import sys
 import os
 import shutil
+import time
 from pathlib import Path
 
 # Force UTF-8 output on Windows
@@ -44,7 +45,7 @@ print("=" * 70)
 # Clean build artifacts
 print("\nCleaning previous build artifacts...")
 try:
-    for dir_to_clean in ["build/flutter", "build/python-app", "build/site-packages", "build/web", "build/.hash"]:
+    for dir_to_clean in ["build/flutter", "build/python-app", "build/site-packages", "build/web", "build/apk", "build/.hash"]:
         path = PROJECT_ROOT / dir_to_clean
         if path.exists():
             print(f"Removing {path}...")
@@ -83,6 +84,59 @@ print(f"Timeout: 5400 seconds (90 minutes)")
 print(f"\nStarting build process...")
 print(f"This may take 15-60 minutes. Please wait...")
 
+def _finalize_apk(project_root, app_version):
+    apk_dir = project_root / "build" / "apk"
+    versioned_name = f"FarmTree-v{app_version}-arm64-v8a.apk"
+    print(f"\n" + "=" * 70)
+    print("FINALIZING APK")
+    print("=" * 70)
+    # Gradle may keep building the APK after this script times out, so poll
+    # for the produced APK and always rename it with the version number.
+    deadline = time.time() + 40 * 60
+    apk = None
+    while time.time() < deadline:
+        if apk_dir.exists():
+            apks = list(apk_dir.glob("*.apk"))
+            if apks:
+                apk = max(apks, key=lambda f: f.stat().st_mtime)
+                break
+        time.sleep(15)
+    if apk is None:
+        print(f"\n" + "=" * 70)
+        print("APK BUILD FAILED")
+        print("=" * 70)
+        print("No APK file was generated.")
+        print(f"Looking in: {apk_dir}")
+        print("=" * 70)
+        return False
+    target = apk.parent / versioned_name
+    if apk.name != versioned_name:
+        if target.exists():
+            target.unlink()
+        apk.rename(target)
+        apk = target
+    print(f"\n" + "=" * 70)
+    print("APK BUILD SUCCESSFUL")
+    print("=" * 70)
+    print(f"APK created: {apk}")
+    print(f"APK size: {apk.stat().st_size / (1024 * 1024):.2f} MB")
+    print(f"\n" + "=" * 70)
+    print("APK TARGET SPECIFICATIONS - ANDROID 15 (API 35)")
+    print("=" * 70)
+    print(f"Target Android Version: API 35 (Android 15)")
+    print(f"Architecture: ARM64-v8a (64-bit)")
+    print(f"Application ID: kouljihate.farmtree")
+    print(f"Version Code: 35")
+    print(f"Version Name: {app_version}")
+    print(f"Signing: farmtree keystore")
+    print(f"Min SDK: 24")
+    print(f"Target SDK: 36")
+    print("=" * 70)
+    print(f"\nAPK BUILD COMPLETED SUCCESSFULLY!")
+    print(f"The APK is ready for distribution and installation.")
+    return True
+
+
 try:
     result = subprocess.run(
         build_cmd,
@@ -91,7 +145,24 @@ try:
         encoding='utf-8',
         timeout=5400
     )
+except subprocess.TimeoutExpired:
+    result = None
+    print("\n" + "=" * 70)
+    print("BUILD TIMEOUT")
+    print("=" * 70)
+    print("flet exited by timeout, but Gradle may still be building the APK.")
+    print("Waiting up to 40 minutes for the APK to be produced...")
+except Exception as e:
+    result = None
+    print("\n" + "=" * 70)
+    print("BUILD ERROR")
+    print("=" * 70)
+    print(f"Error during build: {e}")
+    import traceback
+    traceback.print_exc()
+    print("=" * 70)
 
+if result is not None:
     print("\n" + "=" * 70)
     print("BUILD OUTPUT")
     print("=" * 70)
@@ -105,70 +176,5 @@ try:
 
     print(f"\nExit code: {result.returncode}")
 
-    # Check for APK files
-    apk_dir = PROJECT_ROOT / "build" / "apk"
-    if apk_dir.exists():
-        apk_files = list(apk_dir.glob("*.apk"))
-    else:
-        apk_files = []
-
-    if apk_files:
-        latest_apk = max(apk_files, key=lambda f: f.stat().st_mtime)
-        versioned_name = f"FarmTree-v{APP_VERSION}-arm64-v8a.apk"
-        versioned_path = latest_apk.parent / versioned_name
-        if latest_apk.name != versioned_name:
-            if versioned_path.exists():
-                versioned_path.unlink()
-            latest_apk.rename(versioned_path)
-            latest_apk = versioned_path
-        print(f"\n" + "=" * 70)
-        print("APK BUILD SUCCESSFUL")
-        print("=" * 70)
-        print(f"APK created: {latest_apk}")
-        print(f"APK size: {latest_apk.stat().st_size / (1024 * 1024):.2f} MB")
-
-        print(f"\n" + "=" * 70)
-        print("APK TARGET SPECIFICATIONS - ANDROID 15 (API 35)")
-        print("=" * 70)
-        print(f"Target Android Version: API 35 (Android 15)")
-        print(f"Architecture: ARM64-v8a (64-bit)")
-        print(f"Application ID: kouljihate.farmtree")
-        print(f"Version Code: 33")
-        print(f"Version Name: {APP_VERSION}")
-        print(f"Signing: farmtree keystore")
-        print(f"Min SDK: 24")
-        print(f"Target SDK: 36")
-        print("=" * 70)
-
-        print(f"\nAPK BUILD COMPLETED SUCCESSFULLY!")
-        print(f"The APK is ready for distribution and installation.")
-
-        sys.exit(0)
-    else:
-        print(f"\n" + "=" * 70)
-        print("APK BUILD FAILED")
-        print("=" * 70)
-        print("No APK file was generated.")
-        print(f"Looking in: {apk_dir}")
-        print("=" * 70)
-
-        sys.exit(1)
-
-except subprocess.TimeoutExpired:
-    print("\n" + "=" * 70)
-    print("BUILD TIMEOUT")
-    print("=" * 70)
-    print("APK build timed out after 90 minutes.")
-    print("=" * 70)
-
-    sys.exit(1)
-except Exception as e:
-    print(f"\n" + "=" * 70)
-    print("BUILD ERROR")
-    print("=" * 70)
-    print(f"Error during build: {e}")
-    import traceback
-    traceback.print_exc()
-    print("=" * 70)
-
-    sys.exit(1)
+ok = _finalize_apk(PROJECT_ROOT, APP_VERSION)
+sys.exit(0 if ok else 1)
