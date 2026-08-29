@@ -281,25 +281,18 @@ def _enrich_tree(tree) -> dict:
 
 def get_trees_slice(start: int = 0, limit: int = 1000) -> list[dict]:
     global _trees_cache
-    db = get_db()
-    table = db.table("trees")
     if _trees_cache is None:
-        all_docs = table.all()
-        _trees_cache = [_enrich_tree(t) for t in all_docs]
-        _trees_cache.sort(key=lambda x: x.get("last_visit_dt", ""), reverse=True)
-    all_trees = _trees_cache
-    total = len(all_trees)
+        _trees_cache = get_all_trees()
+    total = len(_trees_cache)
     end = min(start + limit, total)
-    return all_trees[start:end]
+    return _trees_cache[start:end]
 
 
 def count_trees() -> int:
     global _trees_cache
-    db = get_db()
-    table = db.table("trees")
     if _trees_cache is not None:
         return len(_trees_cache)
-    return len(table)
+    return len(get_all_trees())
 
 
 def copy_photo_to_storage(src_path: str) -> str:
