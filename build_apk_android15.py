@@ -78,10 +78,10 @@ build_cmd = [
 ]
 
 print(f"\nBuilding APK for Android 15...")
-print(f"Timeout: 1800 seconds (30 minutes)")
+print(f"Timeout: 3600 seconds (60 minutes)")
 
 print(f"\nStarting build process...")
-print(f"This may take 5-15 minutes. Please wait...")
+print(f"This may take 15-60 minutes. Please wait...")
 
 try:
     result = subprocess.run(
@@ -89,7 +89,7 @@ try:
         capture_output=True,
         text=True,
         encoding='utf-8',
-        timeout=1800
+        timeout=3600
     )
 
     print("\n" + "=" * 70)
@@ -158,7 +158,7 @@ except subprocess.TimeoutExpired:
     print("\n" + "=" * 70)
     print("BUILD TIMEOUT")
     print("=" * 70)
-    print("APK build timed out after 30 minutes.")
+    print("APK build timed out after 60 minutes.")
     print("=" * 70)
 
     sys.exit(1)
