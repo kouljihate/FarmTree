@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "D:\Projects\opencode\FarmTree\test_button.py", line 31, in <module>
-    ft.app(target=main, view=ft.WEB_BROWSER)
-                             ^^^^^^^^^^^^^^
-  File "C:\Users\koul\AppData\Local\Programs\Python\Python312\Lib\site-packages\flet\__init__.py", line 1801, in __getattr__
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-AttributeError: module 'flet' has no attribute 'WEB_BROWSER'
-C:\Users\koul\AppData\Local\Programs\Python\Python312\python.exe: can't open file 'D:\\Projects\\opencode\\FarmTree\\test_button.py': [Errno 2] No such file or directory
