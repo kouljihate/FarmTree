@@ -78,8 +78,10 @@ class TreesApp:
 
         self.geolocator = None
         self.camera = None
+        self.audio_recorder = None
         self.camera_available = False
         self.geolocator_available = False
+        self.audio_recorder_available = False
 
         _is_desktop = self.page.platform in (ft.PagePlatform.WINDOWS, ft.PagePlatform.MACOS, ft.PagePlatform.LINUX)
         if not _is_desktop:
@@ -100,6 +102,16 @@ class TreesApp:
                 self.camera_available = True
             except Exception as ex:
                 self.logger.warning("Camera init failed: %s", ex)
+
+            try:
+                import flet_audio_recorder as far
+                self.audio_recorder = far.AudioRecorder(
+                    configuration=far.AudioRecorderConfiguration(encoder=far.AudioEncoder.OPUS),
+                )
+                self.page.overlay.append(self.audio_recorder)
+                self.audio_recorder_available = True
+            except Exception as ex:
+                self.logger.warning("Audio recorder init failed: %s", ex)
         else:
             self.logger.info("Camera and Geolocator skipped on desktop platform: %s", self.page.platform)
 

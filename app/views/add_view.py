@@ -14,7 +14,6 @@ from flet import (
 )
 from app.config import TREE_KINDS, TREE_VARIETIES, STATUS_LOOKUP
 from app.database import insert_tree, copy_photo_to_storage, photo_to_base64, audio_to_base64, PHOTOS_DIR
-import flet_audio_recorder as far
 
 STATUS_DROPDOWN_ITEMS = [DropdownOption(text=label, key=label) for label in STATUS_LOOKUP]
 KIND_DROPDOWN_ITEMS = [DropdownOption(text=k, key=k) for k in TREE_KINDS]
@@ -207,10 +206,6 @@ class TreeAddView:
         self._recording_timer_task = None
         self._audio_recording = False
 
-        self.audio_recorder = far.AudioRecorder(
-            configuration=far.AudioRecorderConfiguration(encoder=far.AudioEncoder.OPUS),
-            on_state_change=self._on_audio_state_change,
-        )
         self.audio_record_btn = FilledButton(
             content=Text(self.t("record_audio")),
             icon=Icons.MIC,
@@ -296,8 +291,6 @@ class TreeAddView:
     def show(self):
         self.app.back_btn.on_click = lambda _: self.app.list_view.show()
         self.app.app_bar.leading = self.app.back_btn
-        if self.audio_recorder not in self.app.page.controls:
-            self.app.page.overlay.append(self.audio_recorder)
         self.reset_form()
         self.app._switch_view(self.container)
         self.app.nav_bar.selected_index = 1
@@ -465,14 +458,14 @@ class TreeAddView:
     def _take_audio(self):
         async def _do():
             try:
-                has = await self.audio_recorder.has_permission()
+                has = await self.app.audio_recorder.has_permission()
                 if not has:
                     self.app.show_snack(self.t("permission_denied"), Colors.RED)
                     return
                 tmp = tempfile.NamedTemporaryFile(suffix=".ogg", delete=False)
                 tmp.close()
                 self.captured_audio_path = tmp.name
-                self.audio_recorder.start_recording(output_path=tmp.name)
+                self.app.audio_recorder.start_recording(output_path=tmp.name)
                 self._audio_recording = True
                 self._recording_start = datetime.now()
                 self.audio_record_btn.visible = False
@@ -498,7 +491,7 @@ class TreeAddView:
             await asyncio.sleep(1)
 
     def _stop_audio(self):
-        self.audio_recorder.stop_recording()
+        self.app.audio_recorder.stop_recording()
         self._audio_recording = False
         if self._recording_timer_task:
             self._recording_timer_task.cancel()

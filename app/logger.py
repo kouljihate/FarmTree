@@ -48,3 +48,37 @@ def read_logs(num_lines: int = 200) -> list[str]:
         return lines[-num_lines:]
     except Exception:
         return ["[Error reading log file]"]
+
+
+def clear_logs() -> None:
+    try:
+        if os.path.exists(LOG_FILE):
+            with open(LOG_FILE, "w", encoding="utf-8") as f:
+                f.truncate(0)
+        for handler in (_logger.handlers if _logger else []):
+            if hasattr(handler, "doRollover"):
+                try:
+                    handler.doRollover()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
+def export_logs() -> str:
+    try:
+        export_dir = os.path.join(LOG_DIR)
+        os.makedirs(export_dir, exist_ok=True)
+        from datetime import datetime
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dst = os.path.join(export_dir, f"export_{ts}.txt")
+        if os.path.exists(LOG_FILE):
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
+                data = f.read()
+        else:
+            data = "[No logs]"
+        with open(dst, "w", encoding="utf-8") as f:
+            f.write(data)
+        return dst
+    except Exception:
+        return ""
