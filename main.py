@@ -1,7 +1,11 @@
 import os
 import logging
 import flet as ft
-import flet_audio_recorder as far
+
+try:
+    import flet_audio_recorder as far
+except ImportError:
+    far = None
 from flet import (
     Page, AppBar, IconButton, Icon, Icons, TextField,
     Colors, Container, Stack, Row, Column, Text, SnackBar, SafeArea,
@@ -104,14 +108,15 @@ class TreesApp:
             except Exception as ex:
                 self.logger.warning("Camera init failed: %s", ex)
 
-            try:
-                self.audio_recorder = far.AudioRecorder(
-                    configuration=far.AudioRecorderConfiguration(encoder=far.AudioEncoder.OPUS),
-                )
-                self.page.overlay.append(self.audio_recorder)
-                self.audio_recorder_available = True
-            except Exception as ex:
-                self.logger.warning("Audio recorder init failed: %s", ex)
+            if far is not None:
+                try:
+                    self.audio_recorder = far.AudioRecorder(
+                        configuration=far.AudioRecorderConfiguration(encoder=far.AudioEncoder.OPUS),
+                    )
+                    self.page.overlay.append(self.audio_recorder)
+                    self.audio_recorder_available = True
+                except Exception as ex:
+                    self.logger.warning("Audio recorder init failed: %s", ex)
         else:
             self.logger.info("Camera and Geolocator skipped on desktop platform: %s", self.page.platform)
 
