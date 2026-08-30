@@ -77,6 +77,26 @@ if far is not None:
 
 ---
 
+## 4b. Python version mismatch causes "Unknown control"
+
+**Symptom**: "Unknown control: AudioRecorder" persists even with try/except guard.
+
+**Cause**: Two Python installations (3.12 and 3.14) with mismatched flet plugin versions. `flet build` uses system Python for packaging — if it picks the Python with outdated plugins (0.86.1 vs 0.86.5), native controls aren't registered.
+
+**Fix**: Keep ALL flet packages at the SAME version across ALL Python installations:
+```powershell
+# Upgrade both Pythons to match
+& "Python312\python.exe" -m pip install --upgrade flet flet-audio flet-audio-recorder flet-camera flet-charts flet-cli flet-geolocator
+& "Python314\python.exe" -m pip install --upgrade flet flet-audio flet-audio-recorder flet-camera flet-charts flet-cli flet-geolocator
+```
+
+Also: **`RECORD_AUDIO` permission** must be in `--permissions` for AudioRecorder to work:
+```python
+"--permissions", "camera", "photo_library", "location", "microphone",
+```
+
+---
+
 ## 5. `AudioRecorder` must be registered in `main.py`, not in sub-views
 
 **Symptom**: "Unknown control: AudioRecorder" when instantiated inside `add_view.py`.
