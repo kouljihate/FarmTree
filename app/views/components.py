@@ -116,6 +116,13 @@ TRANSLATIONS = {
         "row_positive": "Row must be a positive number",
         "tree_positive": "Tree must be a positive number",
         "error_saving_photo": "Error saving photo",
+        "note_audio": "Audio Note",
+        "record_audio": "Record Audio",
+        "stop_recording": "Stop",
+        "recording": "Recording",
+        "audio_recorded": "Audio recorded",
+        "record_failed": "Recording failed",
+        "permission_denied": "Microphone permission denied",
     },
     "ar": {
         "app_title": "مدير أشجار المزرعة",
@@ -226,6 +233,13 @@ TRANSLATIONS = {
         "row_positive": "يجب أن يكون الصف رقماً موجباً",
         "tree_positive": "يجب أن يكون رقم الشجرة رقماً موجباً",
         "error_saving_photo": "خطأ في حفظ الصورة",
+        "note_audio": "ملاحظة صوتية",
+        "record_audio": "تسجيل صوت",
+        "stop_recording": "إيقاف",
+        "recording": "جاري التسجيل",
+        "audio_recorded": "تم تسجيل الصوت",
+        "record_failed": "فشل التسجيل",
+        "permission_denied": "تم رفض إذن الميكروفون",
     },
 }
 
@@ -234,12 +248,27 @@ def build_visit_card(visit: dict, photo_size: int = 50) -> Card:
     status = visit.get("status", "")
     color = STATUS_LOOKUP.get(status, Colors.GREY)
     photos = visit.get("photos", [])
+    audio_b64 = visit.get("audio", "")
+
+    def _photo_src(p):
+        if p.startswith("data:") or p.startswith("http") or p.startswith("/"):
+            return p
+        return f"data:image/jpeg;base64,{p}"
+
     photo_chips = [
         Container(
-            content=Image(src=p, fit=BoxFit.COVER, width=photo_size, height=photo_size, border_radius=BorderRadius(6, 6, 6, 6)),
+            content=Image(src=_photo_src(p), fit=BoxFit.COVER, width=photo_size, height=photo_size, border_radius=BorderRadius(6, 6, 6, 6)),
             width=photo_size, height=photo_size, border_radius=BorderRadius(6, 6, 6, 6), clip_behavior=ft.ClipBehavior.HARD_EDGE,
         ) for p in photos
     ]
+
+    audio_row = Container()
+    if audio_b64:
+        audio_row = Row([
+            Icon(Icons.AUDIOTRACK, size=14, color=Colors.GREEN_700),
+            Text("Audio note", size=11, color=Colors.GREEN_700, font_family="Comfortaa"),
+        ], spacing=4)
+
     return Card(
         content=Container(
             content=Column([
@@ -252,6 +281,7 @@ def build_visit_card(visit: dict, photo_size: int = 50) -> Card:
                 ], alignment=MainAxisAlignment.SPACE_BETWEEN),
                 Text(visit.get("notes", "No notes"), size=13, color=Colors.GREY_700, font_family="Comfortaa"),
                 Row(photo_chips, spacing=4) if photo_chips else Container(),
+                audio_row,
             ], spacing=4, tight=True),
             padding=Padding(12, 10, 12, 10),
         ),

@@ -2,9 +2,10 @@ import flet as ft
 from flet import (
     Container, Text, Row, Column, ListView, Card, FilledButton, OutlinedButton,
     GridView, Image, Icon, Icons, Colors, Padding, BorderRadius, FontWeight,
-    Divider, alignment, BoxFit, ClipBehavior,
+    Divider, alignment, BoxFit, ClipBehavior, IconButton,
     CrossAxisAlignment, MainAxisAlignment,
 )
+from flet import Audio
 from app.config import STATUS_LOOKUP
 from app.database import get_tree
 from app.views.components import build_visit_card
@@ -133,12 +134,33 @@ class TreeDetailView:
             for photo in visit.get("photos", []):
                 all_photos.append(photo)
         for photo in all_photos:
+            src = f"data:image/jpeg;base64,{photo}" if not photo.startswith("data:") and not photo.startswith("/") and not photo.startswith("http") else photo
             self.detail_photos_grid.controls.append(
                 Container(
-                    content=Image(src=photo, fit=BoxFit.COVER, border_radius=BorderRadius(8, 8, 8, 8)),
+                    content=Image(src=src, fit=BoxFit.COVER, border_radius=BorderRadius(8, 8, 8, 8)),
                     width=120, height=120, border_radius=BorderRadius(8, 8, 8, 8), clip_behavior=ClipBehavior.HARD_EDGE,
                 )
             )
+
+        if any(v.get("audio") for v in visits):
+            for i, visit in enumerate(reversed(visits)):
+                audio_b64 = visit.get("audio", "")
+                if audio_b64:
+                    src = f"data:audio/ogg;base64,{audio_b64}" if not audio_b64.startswith("data:") else audio_b64
+                    idx = len(visits) - 1 - i
+                    self.detail_photos_grid.controls.append(
+                        Container(
+                            content=Row([
+                                Icon(Icons.AUDIOTRACK, size=20, color=Colors.GREEN_700),
+                                Text(f"Audio {idx+1}", size=12, color=Colors.GREEN_700, font_family="Comfortaa"),
+                            ], spacing=4),
+                            width=120, height=120,
+                            border_radius=BorderRadius(8, 8, 8, 8),
+                            bgcolor=Colors.GREEN_50,
+                            alignment=alignment.Alignment(0, 0),
+                            on_click=lambda _, s=src: self._play_audio(s),
+                        )
+                    )
 
         self.detail_visits_list.controls.clear()
         self.detail_visits_list.controls.extend(build_visit_card(v) for v in reversed(visits))
@@ -151,6 +173,31 @@ class TreeDetailView:
         self.detail_notes.update()
         self.detail_photos_grid.update()
         self.detail_visits_list.update()
+
+    def _play_audio(self, src):
+        def close_dlg(e):
+            if hasattr(self, '_audio_ctrl'):
+                try:
+                    self._audio_ctrl.stop()
+                except Exception:
+                    pass
+            self.app.page.pop_dialog()
+
+        dlg = ft.AlertDialog(
+            title=Text("Playing Audio", font_family="Comfortaa", size=16),
+            content=Container(
+                content=Row([
+                    Icon(Icons.PLAY_CIRCLE, size=40, color=Colors.GREEN_700),
+                    Text("Playing...", size=14, font_family="Comfortaa"),
+                ], spacing=12, alignment=MainAxisAlignment.CENTER),
+                width=250, height=80, alignment=alignment.Alignment(0, 0),
+            ),
+            actions=[TextButton("Stop", on_click=close_dlg)],
+        )
+        self.app.page.show_dialog(dlg)
+        self._audio_ctrl = Audio(src=src, autoplay=True, on_loaded=lambda e: None)
+        self.app.page.overlay.append(self._audio_ctrl)
+        self.app.page.update()
 
     def _edit_current_tree(self):
         self.app.back_btn.on_click = lambda _: self.show_tree_detail(self.app.current_tree_data) if self.app.current_tree_data else self.app.list_view.show()

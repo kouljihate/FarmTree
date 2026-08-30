@@ -171,6 +171,7 @@ def insert_tree_firestore(
     status: str,
     notes: str,
     photos: list[str] | None = None,
+    audio: str | None = None,
 ) -> str | None:
     if not _load_config():
         return None
@@ -182,6 +183,7 @@ def insert_tree_firestore(
         "status": status,
         "notes": notes,
         "photos": photos or [],
+        "audio": audio or "",
     }
     data = {
         "tree_code": tree_code,
@@ -264,7 +266,7 @@ def update_tree_firestore(
     return True
 
 
-def add_visit_firestore(doc_id: str, status: str, notes: str, photos: list[str] | None = None) -> bool:
+def add_visit_firestore(doc_id: str, status: str, notes: str, photos: list[str] | None = None, audio: str | None = None) -> bool:
     if not _load_config():
         return False
     existing = get_tree_firestore(doc_id)
@@ -277,6 +279,7 @@ def add_visit_firestore(doc_id: str, status: str, notes: str, photos: list[str] 
         "status": status,
         "notes": notes,
         "photos": photos or [],
+        "audio": audio or "",
     })
     url = _firestore_url(doc_id=doc_id)
     data = {k: v for k, v in existing.items() if k != "id"}

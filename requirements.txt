@@ -1,4 +1,5 @@
 flet==0.86.5
+flet-audio-recorder==0.86.5
 flet-camera==0.86.5
 flet-charts==0.86.5
 flet-geolocator==0.86.5

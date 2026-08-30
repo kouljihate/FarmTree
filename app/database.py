@@ -1,5 +1,6 @@
 import os
 import uuid
+import base64
 import shutil
 import logging
 from datetime import datetime
@@ -73,9 +74,10 @@ def insert_tree(
     status: str,
     notes: str,
     photos: list[str] | None = None,
+    audio: str | None = None,
 ) -> int | str:
     if _use_firestore():
-        result = insert_tree_firestore(tree_code, kind, variety, latitude, longitude, status, notes, photos)
+        result = insert_tree_firestore(tree_code, kind, variety, latitude, longitude, status, notes, photos, audio)
         if result:
             return result
         raise ValueError("Failed to insert tree to Firestore")
@@ -88,6 +90,7 @@ def insert_tree(
         "status": status,
         "notes": notes,
         "photos": photos or [],
+        "audio": audio or "",
     }
     doc = {
         "tree_code": tree_code,
@@ -102,9 +105,9 @@ def insert_tree(
     return doc_id
 
 
-def add_visit(doc_id, status: str, notes: str, photos: list[str] | None = None) -> None:
+def add_visit(doc_id, status: str, notes: str, photos: list[str] | None = None, audio: str | None = None) -> None:
     if _use_firestore():
-        add_visit_firestore(str(doc_id), status, notes, photos)
+        add_visit_firestore(str(doc_id), status, notes, photos, audio)
         return
     db = get_db()
     table = db.table("trees")
@@ -115,6 +118,7 @@ def add_visit(doc_id, status: str, notes: str, photos: list[str] | None = None) 
             "status": status,
             "notes": notes,
             "photos": photos or [],
+            "audio": audio or "",
         }
         visits = tree.get("visits", [])
         visits.append(visit)
@@ -307,3 +311,31 @@ def copy_photo_to_storage(src_path: str) -> str:
     except Exception as ex:
         logger.error("Failed to copy photo %s -> %s: %s", src_path, dst_path, ex)
     return dst_path
+
+
+def photo_to_base64(src_path: str, max_size: int = 800) -> str:
+    try:
+        from PIL import Image as PILImage
+        from io import BytesIO
+        img = PILImage.open(src_path)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img.thumbnail((max_size, max_size), PILImage.LANCZOS)
+        buf = BytesIO()
+        img.save(buf, format="JPEG", quality=75, optimize=True)
+        return base64.b64encode(buf.getvalue()).decode("ascii")
+    except ImportError:
+        with open(src_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("ascii")
+    except Exception as ex:
+        logger.error("Failed to convert photo to base64: %s", ex)
+        return ""
+
+
+def audio_to_base64(src_path: str) -> str:
+    try:
+        with open(src_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("ascii")
+    except Exception as ex:
+        logger.error("Failed to convert audio to base64: %s", ex)
+        return ""
