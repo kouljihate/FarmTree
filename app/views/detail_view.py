@@ -1,11 +1,14 @@
 import flet as ft
+import base64
+import tempfile
+import os
 from flet import (
     Container, Text, Row, Column, ListView, Card, FilledButton, OutlinedButton,
     GridView, Image, Icon, Icons, Colors, Padding, BorderRadius, FontWeight,
     Divider, alignment, BoxFit, ClipBehavior, IconButton,
     CrossAxisAlignment, MainAxisAlignment,
 )
-from flet import Audio
+from flet_audio import Audio
 from app.config import STATUS_LOOKUP
 from app.database import get_tree
 from app.views.components import build_visit_card
@@ -175,10 +178,25 @@ class TreeDetailView:
         self.detail_visits_list.update()
 
     def _play_audio(self, src):
+        tmp_path = None
+        if src.startswith("data:audio"):
+            b64 = src.split(",", 1)[1] if "," in src else src
+            tmp = tempfile.NamedTemporaryFile(suffix=".ogg", delete=False)
+            tmp.write(base64.b64decode(b64))
+            tmp.close()
+            tmp_path = tmp.name
+        else:
+            tmp_path = src
+
         def close_dlg(e):
             if hasattr(self, '_audio_ctrl'):
                 try:
-                    self._audio_ctrl.stop()
+                    self._audio_ctrl.release()
+                except Exception:
+                    pass
+            if tmp_path and tmp_path.startswith(tempfile.gettempdir()):
+                try:
+                    os.remove(tmp_path)
                 except Exception:
                     pass
             self.app.page.pop_dialog()
@@ -195,7 +213,7 @@ class TreeDetailView:
             actions=[TextButton("Stop", on_click=close_dlg)],
         )
         self.app.page.show_dialog(dlg)
-        self._audio_ctrl = Audio(src=src, autoplay=True, on_loaded=lambda e: None)
+        self._audio_ctrl = Audio(src=tmp_path, autoplay=True)
         self.app.page.overlay.append(self._audio_ctrl)
         self.app.page.update()
 
