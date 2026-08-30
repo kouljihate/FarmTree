@@ -3,7 +3,7 @@ from flet import (
     Container, Text, Row, Column, ListView, Card, ListTile, IconButton,
     Icon, Icons, Colors, Padding, Margin, BorderRadius, FontWeight,
     CrossAxisAlignment, MainAxisAlignment, ProgressRing, BottomAppBar,
-    Image, Stack, alignment, BoxFit,
+    Stack, alignment,
 )
 from app.config import STATUS_LOOKUP
 from app.database import get_trees_slice, search_trees, count_trees, invalidate_cache
@@ -162,7 +162,6 @@ class TreeListView:
         kind = tree.get("kind", "")
         variety = tree.get("variety", "")
         last_status = tree.get("last_status", "No visits")
-        last_photo = tree.get("last_photo", "")
         lat = tree.get("latitude", "")
         lon = tree.get("longitude", "")
 
@@ -177,9 +176,8 @@ class TreeListView:
         leading = Container(
             width=60, height=60,
             border_radius=BorderRadius(8, 8, 8, 8),
-            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            content=Image(src=last_photo, fit=BoxFit.COVER) if last_photo else Icon(Icons.PARK, size=30, color=Colors.GREEN_700),
-            bgcolor=Colors.GREEN_50 if not last_photo else None,
+            content=Icon(Icons.PARK, size=30, color=Colors.GREEN_700),
+            bgcolor=Colors.GREEN_50,
         )
 
         subtitle = Column([
