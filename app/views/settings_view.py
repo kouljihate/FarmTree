@@ -151,7 +151,7 @@ class SettingsView:
         def copy_clipboard(e):
             lines = read_logs(200)
             text = "".join(lines)
-            self.app.page.clipboard = text
+            self.app.page.set_clipboard(text)
             self.app.page.update()
             self.app.show_snack("Logs copied to clipboard", Colors.GREEN)
 
