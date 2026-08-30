@@ -125,7 +125,7 @@ class SettingsView:
         self.app.page.show_dialog(dlg)
 
     def show_logs(self, e):
-        from app.logger import read_logs
+        from app.logger import read_logs, clear_logs, export_logs
 
         def close(e):
             self.app.page.pop_dialog()
@@ -133,8 +133,27 @@ class SettingsView:
         def refresh(e):
             lines = read_logs(200)
             content.controls = [Text(l.rstrip(), size=11, font_family="Consolas", selectable=True) for l in lines]
-            dlg.content = Column([Text("App Logs", size=16, weight=FontWeight.BOLD), Divider(), content], width=360, height=500)
             self.app.page.update()
+
+        def clear(e):
+            clear_logs()
+            content.controls = [Text("[Logs cleared]", size=11, font_family="Consolas")]
+            self.app.page.update()
+            self.app.show_snack("Logs cleared", Colors.GREEN)
+
+        def export(e):
+            path = export_logs()
+            if path:
+                self.app.show_snack(f"Exported: {path}", Colors.GREEN)
+            else:
+                self.app.show_snack("Export failed", Colors.RED)
+
+        def copy_clipboard(e):
+            lines = read_logs(200)
+            text = "".join(lines)
+            self.app.page.clipboard = text
+            self.app.page.update()
+            self.app.show_snack("Logs copied to clipboard", Colors.GREEN)
 
         lines = read_logs(200)
         content = Column(
@@ -145,6 +164,9 @@ class SettingsView:
             title=Text(self.t("logs_title"), font_family=self._font(), weight=FontWeight.BOLD),
             content=Column([Text("App Logs", size=16, weight=FontWeight.BOLD), Divider(), content], width=360, height=500),
             actions=[
+                TextButton("Clear", on_click=clear),
+                TextButton("Export", on_click=export),
+                TextButton("CC", on_click=copy_clipboard),
                 TextButton("Refresh", on_click=refresh),
                 TextButton("Close", on_click=close),
             ],

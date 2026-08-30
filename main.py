@@ -1,6 +1,7 @@
 import os
 import logging
 import flet as ft
+import flet_audio_recorder as far
 from flet import (
     Page, AppBar, IconButton, Icon, Icons, TextField,
     Colors, Container, Stack, Row, Column, Text, SnackBar, SafeArea,
@@ -104,7 +105,6 @@ class TreesApp:
                 self.logger.warning("Camera init failed: %s", ex)
 
             try:
-                import flet_audio_recorder as far
                 self.audio_recorder = far.AudioRecorder(
                     configuration=far.AudioRecorderConfiguration(encoder=far.AudioEncoder.OPUS),
                 )
