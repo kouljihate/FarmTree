@@ -126,18 +126,21 @@ class SettingsView:
 
     def show_logs(self, e):
         from app.logger import read_logs, clear_logs, export_logs
+        from datetime import datetime
 
         def close(e):
             self.app.page.pop_dialog()
 
         def refresh(e):
             lines = read_logs(200)
-            content.controls = [Text(l.rstrip(), size=11, font_family="Consolas", selectable=True) for l in lines]
+            log_body.controls = [Text(l.rstrip(), size=11, font_family="Consolas", selectable=True) for l in lines]
+            header_time.value = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.app.page.update()
 
         def clear(e):
             clear_logs()
-            content.controls = [Text("[Logs cleared]", size=11, font_family="Consolas")]
+            log_body.controls = [Text("[Logs cleared]", size=11, font_family="Consolas")]
+            header_time.value = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.app.page.update()
             self.app.show_snack("Logs cleared", Colors.GREEN)
 
@@ -156,19 +159,33 @@ class SettingsView:
             self.app.show_snack("Logs copied to clipboard", Colors.GREEN)
 
         lines = read_logs(200)
-        content = Column(
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        header_time = Text(now, size=11, color=Colors.GREY_600, font_family="Consolas")
+
+        header = Row([
+            Icon(Icons.BUG_REPORT, size=18, color=Colors.GREEN_700),
+            Text(self.t("logs_title"), size=16, weight=FontWeight.BOLD, font_family=self._font()),
+            header_time,
+        ], spacing=8, alignment=MainAxisAlignment.START, vertical_alignment=CrossAxisAlignment.CENTER)
+
+        log_body = Column(
             [Text(l.rstrip(), size=11, font_family="Consolas", selectable=True) for l in lines],
-            scroll=ScrollMode.AUTO, spacing=2,
+            scroll=ScrollMode.AUTO, spacing=2, expand=True,
         )
+
+        footer = Row([
+            TextButton("Clear", icon=Icons.DELETE_OUTLINE, on_click=clear),
+            TextButton("Export", icon=Icons.SAVE_ALT, on_click=export),
+            TextButton("CC", icon=Icons.COPY, on_click=copy_clipboard),
+            TextButton("Refresh", icon=Icons.REFRESH, on_click=refresh),
+            TextButton("Close", on_click=close),
+        ], spacing=4, alignment=MainAxisAlignment.END)
+
         dlg = AlertDialog(
-            title=Text(self.t("logs_title"), font_family=self._font(), weight=FontWeight.BOLD),
-            content=Column([Text("App Logs", size=16, weight=FontWeight.BOLD), Divider(), content], width=360, height=500),
-            actions=[
-                TextButton("Clear", on_click=clear),
-                TextButton("Export", on_click=export),
-                TextButton("CC", on_click=copy_clipboard),
-                TextButton("Refresh", on_click=refresh),
-                TextButton("Close", on_click=close),
-            ],
+            title=header,
+            content=Container(log_body, width=420, height=450),
+            actions=[footer],
+            actions_padding=Padding(12, 8, 12, 8),
         )
         self.app.page.show_dialog(dlg)

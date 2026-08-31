@@ -2,10 +2,6 @@ import os
 import logging
 import flet as ft
 
-try:
-    import flet_audio_recorder as far
-except ImportError:
-    far = None
 from flet import (
     Page, AppBar, IconButton, Icon, Icons, TextField,
     Colors, Container, Stack, Row, Column, Text, SnackBar, SafeArea,
@@ -87,6 +83,7 @@ class TreesApp:
         self.camera_available = False
         self.geolocator_available = False
         self.audio_recorder_available = False
+        self.captured_audio_b64 = None
 
         _is_desktop = self.page.platform in (ft.PagePlatform.WINDOWS, ft.PagePlatform.MACOS, ft.PagePlatform.LINUX)
         if not _is_desktop:

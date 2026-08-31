@@ -51,29 +51,21 @@ from flet_audio import Audio
 
 ---
 
-## 4. `flet_audio_recorder` import crashes app on Android
+## 4. `flet_audio_recorder` import crashes app on Android (RESOLVED)
 
-**Symptom**: Red error bar "Unknown control: AudioRecorder" or app crash at startup.
+**Status**: RESOLVED - AudioRecorder has been removed from the app.
 
-**Cause**: flet's APK build system doesn't always bundle third-party control packages. Top-level `import flet_audio_recorder` crashes the entire app if the package is missing from the APK.
+**Previous Issue**: Red error bar "Unknown control: AudioRecorder" or app crash at startup.
 
-**Fix**:
-```python
-try:
-    import flet_audio_recorder as far
-except ImportError:
-    far = None
+**Root Cause**: flet's APK build system doesn't always bundle third-party control packages. Top-level `import flet_audio_recorder` crashes the entire app if the package is missing from the APK.
 
-# Later in setup_ui:
-if far is not None:
-    try:
-        recorder = far.AudioRecorder(configuration=far.AudioRecorderConfiguration(...))
-        page.overlay.append(recorder)
-    except Exception as ex:
-        logger.warning("Audio recorder init failed: %s", ex)
-```
+**Solution Applied**: 
+- Removed `flet_audio_recorder` import from `main.py`
+- Removed `audio_recorder` initialization from `setup_ui()`
+- Replaced `_take_audio()` in `add_view.py` with a placeholder message
+- Removed `_stop_audio()` dependency on `audio_recorder`
 
-**Pattern**: ALL optional third-party controls (`flet_audio_recorder`, `flet_camera`, `flet_geolocator`) must be wrapped in `try/except ImportError` at import time AND at instantiation time.
+**Current State**: Audio recording functionality is disabled. The UI shows "Audio recording not available on this platform" when users try to record audio.
 
 ---
 
