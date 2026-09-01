@@ -176,11 +176,11 @@ class SettingsView:
         )
 
         footer = Row([
-            TextButton("Clear", icon=Icons.DELETE_OUTLINE, on_click=clear),
-            TextButton("Export", icon=Icons.SAVE_ALT, on_click=export),
-            TextButton("CC", icon=Icons.COPY, on_click=copy_clipboard),
-            TextButton("Refresh", icon=Icons.REFRESH, on_click=refresh),
-            TextButton("Close", on_click=close),
+            IconButton(Icons.DELETE_OUTLINE, icon_color=Colors.RED_700, tooltip="Clear", on_click=clear),
+            IconButton(Icons.SAVE_ALT, icon_color=Colors.GREEN_700, tooltip="Export", on_click=export),
+            IconButton(Icons.COPY, icon_color=Colors.BLUE_700, tooltip="CC", on_click=copy_clipboard),
+            IconButton(Icons.REFRESH, icon_color=Colors.ORANGE_700, tooltip="Refresh", on_click=refresh),
+            IconButton(Icons.CLOSE, icon_color=Colors.GREY_600, tooltip="Close", on_click=close),
         ], spacing=4, alignment=MainAxisAlignment.END)
 
         dlg = AlertDialog(
