@@ -3,6 +3,7 @@ from flet import (
     Container, Text, Row, Column, Card, ListTile, Switch, AlertDialog,
     TextButton, Divider, Icon, Icons, Colors, Padding, FontWeight,
     ScrollMode, alignment, IconButton, Clipboard,
+    MainAxisAlignment, CrossAxisAlignment,
 )
 
 
