@@ -162,6 +162,7 @@ class TreeListView:
         kind = tree.get("kind", "")
         variety = tree.get("variety", "")
         last_status = tree.get("last_status", "No visits")
+        last_photo = tree.get("last_photo", "")
         lat = tree.get("latitude", "")
         lon = tree.get("longitude", "")
 
@@ -173,12 +174,21 @@ class TreeListView:
             border_radius=BorderRadius(20, 20, 20, 20),
         )
 
-        leading = Container(
-            width=60, height=60,
-            border_radius=BorderRadius(8, 8, 8, 8),
-            content=Icon(Icons.PARK, size=30, color=Colors.GREEN_700),
-            bgcolor=Colors.GREEN_50,
-        )
+        if last_photo:
+            photo_src = last_photo if last_photo.startswith("data:") else f"data:image/jpeg;base64,{last_photo}"
+            leading = Container(
+                width=60, height=60,
+                border_radius=BorderRadius(8, 8, 8, 8),
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                content=ft.Image(src=photo_src, fit=ft.BoxFit.COVER, width=60, height=60),
+            )
+        else:
+            leading = Container(
+                width=60, height=60,
+                border_radius=BorderRadius(8, 8, 8, 8),
+                content=Icon(Icons.PARK, size=30, color=Colors.GREEN_700),
+                bgcolor=Colors.GREEN_50,
+            )
 
         subtitle = Column([
             Row([

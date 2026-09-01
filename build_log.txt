@@ -1,0 +1,80 @@
+======================================================================
+APK BUILD FOR ANDROID 15 (API 35) - FARM TREE MANAGER
+======================================================================
+Project: Farm Tree Manager v1.22.19
+Build Number: 52
+Target Android: API 35 (Android 15)
+Architecture: arm64-v8a
+JAVA_HOME: C:\Users\koul\java\17.0.13+11
+======================================================================
+
+Cleaning previous build artifacts...
+Removing D:\Projects\opencode\FarmTree\build\flutter...
+Removing D:\Projects\opencode\FarmTree\build\python-app...
+Removing D:\Projects\opencode\FarmTree\build\site-packages...
+Removing D:\Projects\opencode\FarmTree\build\apk...
+Removing D:\Projects\opencode\FarmTree\build\.hash...
+Clean completed
+
+Building APK for Android 15...
+Timeout: 5400 seconds (90 minutes)
+
+Starting build process...
+This may take 15-60 minutes. Please wait...
+
+======================================================================
+BUILD OUTPUT
+======================================================================
+[19:23:58] Installing JDK...                                                   
+[19:23:59] Installing Android SDK...                                           
+           Creating app shell from                                             
+           https://github.com/flet-dev/flet/releases/download/v0.86.5/flet-buil
+           d-template.zip...                                                   
+[19:24:02] Created app shell OK                                                
+           Packaging Python app...                                             
+[19:25:51] Packaged Python app OK                                              
+           Registering Flutter user extensions...                              
+           Registered Flutter user extensions OK                               
+[19:25:52] Customizing app icons...                                            
+           Customized app icons OK                                             
+           Generating app icons...                                             
+[19:26:01] Generated app icons OK                                              
+           Customizing app splash images...                                    
+           Customized app splash images OK                                     
+           Generating splash screens...                                        
+[19:26:08] Generated splash screens OK                                         
+           Building .apk for Android...                                        
+[19:33:19] Built .apk for Android OK                                           
+           Copying build to build\apk directory...                             
+[19:33:21] Copied build to build\apk directory OK                              
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Successfully built your .apk for Android!  Find it in build\apk directory.  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Exit code: 0
+
+======================================================================
+FINALIZING APK
+======================================================================
+
+======================================================================
+APK BUILD SUCCESSFUL
+======================================================================
+APK created: D:\Projects\opencode\FarmTree\build\apk\FarmTree-v1.22.19-arm64-v8a.apk
+APK size: 222.15 MB
+
+======================================================================
+APK TARGET SPECIFICATIONS - ANDROID 15 (API 35)
+======================================================================
+Target Android Version: API 35 (Android 15)
+Architecture: ARM64-v8a (64-bit)
+Application ID: kouljihate.farmtree
+Version Code: 52
+Version Name: 1.22.19
+Signing: farmtree keystore
+Min SDK: 24
+Target SDK: 36
+======================================================================
+
+APK BUILD COMPLETED SUCCESSFULLY!
+The APK is ready for distribution and installation.
