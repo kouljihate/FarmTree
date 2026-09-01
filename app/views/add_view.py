@@ -13,7 +13,7 @@ from flet import (
     CrossAxisAlignment, MainAxisAlignment,
 )
 from app.config import TREE_KINDS, TREE_VARIETIES, STATUS_LOOKUP
-from app.database import insert_tree, copy_photo_to_storage, photo_to_base64, audio_to_base64, PHOTOS_DIR
+from app.database import insert_tree, copy_photo_to_storage, photo_to_base64, PHOTOS_DIR
 
 STATUS_DROPDOWN_ITEMS = [DropdownOption(text=label, key=label) for label in STATUS_LOOKUP]
 KIND_DROPDOWN_ITEMS = [DropdownOption(text=k, key=k) for k in TREE_KINDS]
@@ -201,51 +201,6 @@ class TreeAddView:
             margin=Margin(0, 0, 0, 12),
         )
 
-        self.audio_record_btn = FilledButton(
-            content=Text(self.t("record_audio")),
-            icon=Icons.MIC,
-            on_click=lambda e: self.app.page.run_task(self._take_audio),
-            style=ft.ButtonStyle(color=Colors.WHITE, bgcolor=Colors.GREEN_700, padding=Padding(16, 12, 16, 12)),
-            visible=self.app.audio_recorder_available,
-        )
-        self.audio_stop_btn = FilledButton(
-            content=Text(self.t("stop_recording")),
-            icon=Icons.STOP,
-            on_click=lambda e: self.app.page.run_task(self._stop_audio),
-            style=ft.ButtonStyle(color=Colors.WHITE, bgcolor=Colors.RED_700, padding=Padding(16, 12, 16, 12)),
-            visible=False,
-        )
-        self.audio_delete_btn = IconButton(
-            icon=Icons.DELETE,
-            icon_color=Colors.GREY_600,
-            tooltip="Delete",
-            on_click=self._delete_audio,
-            visible=False,
-        )
-        self.audio_status_text = Text("", size=12, font_family=self._font(), color=Colors.GREEN_700)
-
-        self.audio_card = Card(
-            content=Container(
-                content=Column([
-                    Row([
-                        Icon(Icons.AUDIOTRACK, size=18, color=Colors.GREEN_700),
-                        Text(self.t("note_audio"), size=16, weight=FontWeight.BOLD, font_family=self._font(), color=Colors.GREEN_700),
-                    ], spacing=8, alignment=MainAxisAlignment.START),
-                    Divider(height=12),
-                    Row([
-                        self.audio_record_btn,
-                        self.audio_stop_btn,
-                        self.audio_delete_btn,
-                        self.audio_status_text,
-                    ], spacing=10, alignment=MainAxisAlignment.START, vertical_alignment=CrossAxisAlignment.CENTER),
-                ], spacing=10),
-                padding=Padding(16, 12, 16, 12),
-            ),
-            elevation=2,
-            margin=Margin(0, 0, 0, 12),
-            visible=self.app.audio_recorder_available,
-        )
-
         self.add_save_btn = FilledButton(
             content=Text(self.t("save_tree")),
             icon=Icons.SAVE,
@@ -278,8 +233,6 @@ class TreeAddView:
                         self.location_card,
                         Divider(height=8),
                         self.tree_details_card,
-                        Divider(height=8),
-                        self.audio_card,
                         Divider(height=12),
                         Row([self.add_save_btn, self.add_save_next_btn], spacing=10, alignment=MainAxisAlignment.CENTER),
                     ], spacing=12, horizontal_alignment=CrossAxisAlignment.START),
@@ -311,17 +264,11 @@ class TreeAddView:
             self.add_status.value = None
             self.add_notes.value = ""
             self.app.captured_photo_path = None
-            self.app.captured_audio_b64 = None
             self.app.captured_gps_lat = ""
             self.app.captured_gps_lon = ""
             self.add_photo_img.visible = False
             self.add_photo_placeholder.visible = True
             self.add_take_photo_btn.visible = True
-            if self.app.audio_recorder_available:
-                self.audio_record_btn.visible = True
-                self.audio_stop_btn.visible = False
-                self.audio_delete_btn.visible = False
-                self.audio_status_text.value = ""
             self.update_tree_code()
 
     def update_tree_code(self):
@@ -399,10 +346,8 @@ class TreeAddView:
                 self.app.logger.error("Failed to encode photo: %s", ex, exc_info=True)
                 self.app.show_snack(self.t("error_saving_photo"), Colors.RED)
 
-        audio_b64 = getattr(self.app, 'captured_audio_b64', None)
-
         try:
-            insert_tree(tree_code, kind, variety, latitude, longitude, status, notes, [photo_b64] if photo_b64 else None, audio=audio_b64)
+            insert_tree(tree_code, kind, variety, latitude, longitude, status, notes, [photo_b64] if photo_b64 else None)
             self.app.show_snack(self.t("tree_added_next") if next_mode else self.t("tree_added"), Colors.GREEN)
         except Exception as ex:
             self.app.logger.error("Failed to save tree: %s", ex, exc_info=True)
@@ -424,15 +369,9 @@ class TreeAddView:
             self.add_status.value = None
             self.add_notes.value = ""
             self.app.captured_photo_path = None
-            self.app.captured_audio_b64 = None
             self.add_photo_img.visible = False
             self.add_photo_placeholder.visible = True
             self.add_take_photo_btn.visible = True
-            if self.app.audio_recorder_available:
-                self.audio_record_btn.visible = True
-                self.audio_stop_btn.visible = False
-                self.audio_delete_btn.visible = False
-                self.audio_status_text.value = ""
             self.add_tree_code.update()
             self.add_variety.update()
             self.add_status.update()
@@ -441,11 +380,6 @@ class TreeAddView:
                 self.add_photo_img.update()
                 self.add_photo_placeholder.update()
                 self.add_take_photo_btn.update()
-                if self.app.audio_recorder_available:
-                    self.audio_record_btn.update()
-                    self.audio_stop_btn.update()
-                    self.audio_delete_btn.update()
-                    self.audio_status_text.update()
             except RuntimeError:
                 pass
         else:
@@ -520,65 +454,3 @@ class TreeAddView:
 
         self.app._gps_task = asyncio.create_task(_get_position())
         self.app.show_snack(self.t("gps_getting"), Colors.BLUE)
-
-    async def _take_audio(self):
-        if not self.app.audio_recorder_available:
-            self.app.show_snack(self.t("record_failed"), Colors.RED)
-            return
-        try:
-            self.app.show_snack(self.t("recording"), Colors.BLUE)
-            await self.app.audio_recorder.start_recording()
-            self.audio_record_btn.visible = False
-            self.audio_stop_btn.visible = True
-            self.audio_delete_btn.visible = False
-            self.audio_status_text.value = self.t("recording")
-            self.audio_record_btn.update()
-            self.audio_stop_btn.update()
-            self.audio_delete_btn.update()
-            self.audio_status_text.update()
-        except Exception as ex:
-            self.app.logger.error("Audio recording start failed: %s", ex, exc_info=True)
-            self.app.show_snack(self.t("record_failed"), Colors.RED)
-
-    async def _stop_audio(self):
-        if not self.app.audio_recorder_available:
-            return
-        try:
-            result = await self.app.audio_recorder.stop_recording()
-            self.audio_record_btn.visible = True
-            self.audio_stop_btn.visible = False
-            self.audio_status_text.update()
-
-            if result and hasattr(result, 'file_path') and result.file_path:
-                try:
-                    self.app.captured_audio_b64 = audio_to_base64(result.file_path)
-                    self.audio_status_text.value = self.t("audio_recorded")
-                    self.audio_delete_btn.visible = True
-                    self.audio_status_text.update()
-                    self.audio_delete_btn.update()
-                    self.app.show_snack(self.t("audio_recorded"), Colors.GREEN)
-                except Exception as ex:
-                    self.app.logger.error("Failed to encode audio: %s", ex, exc_info=True)
-                    self.app.show_snack(self.t("record_failed"), Colors.RED)
-                    self.audio_status_text.value = ""
-                    self.audio_status_text.update()
-            else:
-                self.audio_status_text.value = ""
-                self.audio_status_text.update()
-                self.app.show_snack(self.t("record_failed"), Colors.RED)
-        except Exception as ex:
-            self.app.logger.error("Audio recording stop failed: %s", ex, exc_info=True)
-            self.app.show_snack(self.t("record_failed"), Colors.RED)
-            self.audio_record_btn.visible = True
-            self.audio_stop_btn.visible = False
-            self.audio_status_text.value = ""
-            self.audio_record_btn.update()
-            self.audio_stop_btn.update()
-            self.audio_status_text.update()
-
-    def _delete_audio(self, e):
-        self.app.captured_audio_b64 = None
-        self.audio_delete_btn.visible = False
-        self.audio_status_text.value = ""
-        self.audio_delete_btn.update()
-        self.audio_status_text.update()
