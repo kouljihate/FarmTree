@@ -2,6 +2,11 @@ import os
 import logging
 import flet as ft
 
+try:
+    import flet_audio_recorder as far
+except ImportError:
+    far = None
+
 from flet import (
     Page, AppBar, IconButton, Icon, Icons, TextField,
     Colors, Container, Stack, Row, Column, Text, SnackBar, SafeArea,
