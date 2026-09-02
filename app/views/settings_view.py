@@ -179,6 +179,7 @@ class SettingsView:
             IconButton(Icons.DELETE_OUTLINE, icon_color=Colors.RED_700, tooltip="Clear", on_click=clear),
             IconButton(Icons.SAVE_ALT, icon_color=Colors.GREEN_700, tooltip="Export", on_click=export),
             IconButton(Icons.COPY, icon_color=Colors.BLUE_700, tooltip="CC", on_click=copy_clipboard),
+            IconButton(Icons.SHARE, icon_color=Colors.PURPLE_700, tooltip="Share", on_click=copy_clipboard),
             IconButton(Icons.REFRESH, icon_color=Colors.ORANGE_700, tooltip="Refresh", on_click=refresh),
             IconButton(Icons.CLOSE, icon_color=Colors.GREY_600, tooltip="Close", on_click=close),
         ], spacing=4, alignment=MainAxisAlignment.END)
