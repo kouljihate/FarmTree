@@ -101,6 +101,14 @@ class TreesApp:
                 self.camera_available = True
             except Exception as ex:
                 self.logger.warning("Camera init failed: %s", ex)
+
+            try:
+                from flet_clipboard import Clipboard
+                self.clipboard = Clipboard()
+                self.page.overlay.append(self.clipboard)
+                self.clipboard_available = True
+            except Exception as ex:
+                self.logger.warning("Clipboard not available: %s", ex)
         else:
             self.logger.info("Camera and Geolocator skipped on desktop platform: %s", self.page.platform)
 

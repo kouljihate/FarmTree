@@ -155,9 +155,52 @@ class SettingsView:
         def copy_clipboard(e):
             lines = read_logs(200)
             text = "".join(lines)
-            self.app.page.set_clipboard(text)
+            # Try to set clipboard via the service (async), fall back gracefully
+            try:
+                # Access Clipboard service from page overlay if available
+                clipboard = None
+                for ctrl in self.app.page.overlay:
+                    if isinstance(ctrl, ft.Clipboard):
+                        clipboard = ctrl
+                        break
+                if clipboard:
+                    # Clipboard.set() is async; run via page.run_task
+                    def set_clipboard():
+                        import asyncio
+                        try:
+                            asyncio.run(clipboard.set(text))
+                        except Exception:
+                            pass
+                    self.app.page.run_task(set_clipboard)
+            except Exception:
+                pass
             self.app.page.update()
             self.app.show_snack("Logs copied to clipboard", Colors.GREEN)
+
+    async def share_whatsapp(e):
+        lines = read_logs(200)
+        text = "".join(lines)
+        if not text.strip():
+            self.app.show_snack("No text to share", Colors.RED)
+            return
+        # Attempt to launch WhatsApp with the text
+        whatsapp_url = f"whatsapp://send?text={text}"
+        try:
+            await self.app.page.launch_url(whatsapp_url)
+        except Exception:
+            # If launch fails, copy to clipboard and inform user
+            try:
+                clipboard = None
+                for ctrl in self.app.page.overlay:
+                    if isinstance(ctrl, ft.Clipboard):
+                        clipboard = ctrl
+                        break
+                if clipboard:
+                    import asyncio
+                    asyncio.run(clipboard.set(text))
+            except Exception:
+                pass
+            self.app.show_snack("Copied to clipboard. Open WhatsApp and paste", Colors.GREEN)
 
         lines = read_logs(200)
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -179,7 +222,7 @@ class SettingsView:
             IconButton(Icons.DELETE_OUTLINE, icon_color=Colors.RED_700, tooltip="Clear", on_click=clear),
             IconButton(Icons.SAVE_ALT, icon_color=Colors.GREEN_700, tooltip="Export", on_click=export),
             IconButton(Icons.COPY, icon_color=Colors.BLUE_700, tooltip="CC", on_click=copy_clipboard),
-            IconButton(Icons.SHARE, icon_color=Colors.PURPLE_700, tooltip="Share", on_click=copy_clipboard),
+            IconButton(Icons.SHARE, icon_color=Colors.PURPLE_700, tooltip="Share to WhatsApp", on_click=share_whatsapp),
             IconButton(Icons.REFRESH, icon_color=Colors.ORANGE_700, tooltip="Refresh", on_click=refresh),
             IconButton(Icons.CLOSE, icon_color=Colors.GREY_600, tooltip="Close", on_click=close),
         ], spacing=4, alignment=MainAxisAlignment.END)
