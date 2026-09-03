@@ -1,8 +1,8 @@
 ======================================================================
 APK BUILD FOR ANDROID 15 (API 35) - FARM TREE MANAGER
 ======================================================================
-Project: Farm Tree Manager v1.22.21
-Build Number: 54
+Project: Farm Tree Manager v1.22.22
+Build Number: 55
 Target Android: API 35 (Android 15)
 Architecture: arm64-v8a
 JAVA_HOME: C:\Users\koul\java\17.0.13+11
@@ -25,28 +25,28 @@ This may take 15-60 minutes. Please wait...
 ======================================================================
 BUILD OUTPUT
 ======================================================================
-[17:39:36] Installing JDK...                                                   
-[17:39:37] Installing Android SDK...                                           
+[12:44:56] Installing JDK...                                                   
+[12:44:57] Installing Android SDK...                                           
            Creating app shell from                                             
            https://github.com/flet-dev/flet/releases/download/v0.86.5/flet-buil
            d-template.zip...                                                   
-[17:39:40] Created app shell OK                                                
+[12:45:00] Created app shell OK                                                
            Packaging Python app...                                             
-[17:41:26] Packaged Python app OK                                              
+[12:47:13] Packaged Python app OK                                              
            Registering Flutter user extensions...                              
            Registered Flutter user extensions OK                               
-[17:41:28] Customizing app icons...                                            
+[12:47:14] Customizing app icons...                                            
            Customized app icons OK                                             
            Generating app icons...                                             
-[17:41:38] Generated app icons OK                                              
+[12:47:22] Generated app icons OK                                              
            Customizing app splash images...                                    
            Customized app splash images OK                                     
            Generating splash screens...                                        
-[17:41:45] Generated splash screens OK                                         
+[12:47:28] Generated splash screens OK                                         
            Building .apk for Android...                                        
-[17:51:01] Built .apk for Android OK                                           
+[12:53:56] Built .apk for Android OK                                           
            Copying build to build\apk directory...                             
-[17:51:05] Copied build to build\apk directory OK                              
+[12:53:58] Copied build to build\apk directory OK                              
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ Successfully built your .apk for Android!  Find it in build\apk directory.  │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -60,8 +60,8 @@ FINALIZING APK
 ======================================================================
 APK BUILD SUCCESSFUL
 ======================================================================
-APK created: D:\Projects\opencode\FarmTree\build\apk\FarmTree-v1.22.21-arm64-v8a.apk
-APK size: 222.23 MB
+APK created: D:\Projects\opencode\FarmTree\build\apk\FarmTree-v1.22.22-arm64-v8a.apk
+APK size: 222.38 MB
 
 ======================================================================
 APK TARGET SPECIFICATIONS - ANDROID 15 (API 35)
@@ -69,8 +69,8 @@ APK TARGET SPECIFICATIONS - ANDROID 15 (API 35)
 Target Android Version: API 35 (Android 15)
 Architecture: ARM64-v8a (64-bit)
 Application ID: kouljihate.farmtree
-Version Code: 54
-Version Name: 1.22.21
+Version Code: 55
+Version Name: 1.22.22
 Signing: farmtree keystore
 Min SDK: 24
 Target SDK: 36

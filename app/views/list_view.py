@@ -6,7 +6,7 @@ from flet import (
     Stack, alignment,
 )
 from app.config import STATUS_LOOKUP
-from app.database import get_trees_slice, search_trees, count_trees, invalidate_cache
+from app.database import get_trees_slice, search_trees, count_trees, invalidate_cache, _enrich_tree
 
 
 class TreeListView:
@@ -36,9 +36,18 @@ class TreeListView:
             expand=True,
             visible=False,
         )
+        self.sort_dropdown = ft.Dropdown(
+            options=[ft.dropdown.Option(opt) for opt in self.sort_options],
+            value=self.sort_by,
+            on_change=self._on_sort_change,
+            width=120,
+            border=ft.InputBorder.OUTLINE,
+            text_style=TextStyle(font_family=self._font()),
+        )
         self.pagination_controls = Row([
             IconButton(icon=Icons.CHEVRON_LEFT, on_click=lambda _: self.prev_page(), disabled=True),
             Text(self.t("page") + "1 / 1", size=14, font_family=self._font()),
+            self.sort_dropdown,
             IconButton(icon=Icons.CHEVRON_RIGHT, on_click=lambda _: self.next_page(), disabled=True),
         ], alignment=MainAxisAlignment.CENTER)
 
@@ -50,6 +59,9 @@ class TreeListView:
             ),
             bgcolor=Colors.WHITE,
         )
+
+        self.sort_options = ["Tree Code", "Kind", "Variety", "Status", "Last Visit"]
+        self.sort_by = "last_visit_dt"  # default sort
 
         self.loading_overlay = Container(
             content=Column([
@@ -109,6 +121,18 @@ class TreeListView:
                 batch_end = ((batch_end - 1) // self.PAGE_CHUNK + 1) * self.PAGE_CHUNK
                 trees = get_trees_slice(0, batch_end)
                 total = count_trees()
+                # Apply sort
+                reverse = self.sort_by != 'last_visit_dt'
+                if self.sort_by == 'tree_code':
+                    trees.sort(key=lambda t: t.get('tree_code', ''), reverse=reverse)
+                elif self.sort_by == 'kind':
+                    trees.sort(key=lambda t: t.get('kind', ''), reverse=reverse)
+                elif self.sort_by == 'variety':
+                    trees.sort(key=lambda t: t.get('variety', ''), reverse=reverse)
+                elif self.sort_by == 'status':
+                    trees.sort(key=lambda t: t.get('last_status', ''), reverse=reverse)
+                else:  # last_visit_dt
+                    trees.sort(key=lambda t: t.get('last_visit_dt', ''), reverse=reverse)
         except Exception as ex:
             self.app.logger.error("Failed to load trees: %s", ex, exc_info=True)
             self.app.show_snack("Error loading trees", Colors.RED)
@@ -145,7 +169,7 @@ class TreeListView:
         total_pages = max(1, (total + self.per_page - 1) // self.per_page)
         self.pagination_controls.controls[0].disabled = self.current_page == 0
         self.pagination_controls.controls[2].disabled = self.current_page >= total_pages - 1
-        self.pagination_controls.controls[1].value = f"Page {self.current_page + 1} / {total_pages}"
+        self.pagination_controls.controls[1].value = f"Page {self.current_page + 1} / {total_pages} [{self.sort_by}]"
         self.pagination_controls.update()
 
     def prev_page(self):
@@ -157,7 +181,12 @@ class TreeListView:
         self.current_page += 1
         self.load_trees()
 
-    def _create_tree_card(self, tree: dict):
+    def _on_sort_change(self, e):
+        self.sort_by = e.control.value
+        self.current_page = 0
+        self.load_trees()
+
+    def _update_pagination(self, tree: dict):
         tree_code = tree.get("tree_code", "Unknown")
         kind = tree.get("kind", "")
         variety = tree.get("variety", "")
